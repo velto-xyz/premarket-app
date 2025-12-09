@@ -1,0 +1,7 @@
+project_id = "avpcdmphzpessnpfewhv"
+
+[functions.liquidation-engine]
+verify_jwt = false
+
+[functions.price-simulator]
+verify_jwt = false
