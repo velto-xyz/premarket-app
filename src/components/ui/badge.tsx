@@ -9,23 +9,23 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        // Default – Electric Teal (Primary/Brand)
-        default: "border-transparent bg-[#00F0FF]/15 text-[#00F0FF]",
-        
-        // Secondary – Sharp Orange (Bearish)
-        secondary: "border-transparent bg-[#FF4D00]/15 text-[#FF4D00]",
-        
+        // Default – Professional Teal (Primary/Brand)
+        default: "border-transparent bg-primary/15 text-primary",
+
+        // Secondary – Warm Orange (Bearish)
+        secondary: "border-transparent bg-secondary/15 text-secondary",
+
         // Destructive – Same as Bearish
-        destructive: "border-transparent bg-[#FF4D00]/15 text-[#FF4D00]",
-        
-        // Success – Bright Green (Bullish/Uptrend)
-        success: "border-transparent bg-[#22C55E]/15 text-[#22C55E]",
-        
-        // AI/Neutral – Electric Purple
-        ai: "border-transparent bg-[#BB86FC]/15 text-[#BB86FC]",
-        
+        destructive: "border-transparent bg-destructive/15 text-destructive",
+
+        // Success – Professional Green (Bullish/Uptrend)
+        success: "border-transparent bg-success/15 text-success",
+
+        // AI/Neutral – Professional Purple
+        ai: "border-transparent bg-accent/15 text-accent",
+
         // Outline
-        outline: "border-white/20 text-white/80",
+        outline: "border-border text-muted-foreground",
       },
     },
     defaultVariants: {

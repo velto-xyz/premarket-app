@@ -4,16 +4,100 @@
 
 /* VELTO Terminal Design System – "The NASDAQ for Private AI"
    Bloomberg Terminal meets Tesla UI meets modern Crypto
-   Keywords: Institutional, Dense, Precision, Dark Mode, Cyber-Physical, Trustworthy
+   Keywords: Institutional, Dense, Precision, Theme-Aware, Cyber-Physical, Trustworthy
+
+   Light Mode: Premium Organic Silver (inspired by reference)
+   Dark Mode: Terminal Neon Cyber (original)
 */
 
 @layer base {
   :root {
+    /* Light Mode - Premium Organic Silver Theme */
+
+    /* Background - Soft teal-silver gradient base */
+    --background: 193 50% 95%;
+    --foreground: 196 38% 16%;
+
+    /* Surface/Cards - Pure white with soft shadows */
+    --card: 0 0% 100%;
+    --card-foreground: 196 38% 16%;
+
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 196 38% 16%;
+
+    /* Primary - Professional Teal (adjusted from original) */
+    --primary: 186 100% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Warm Orange (Bearish/Short) */
+    --secondary: 18 93% 48%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted - Teal-slate gray */
+    --muted: 195 30% 90%;
+    --muted-foreground: 196 17% 47%;
+
+    /* Accent - Professional Purple (AI/Neutral) */
+    --accent: 265 79% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive - Warm Orange */
+    --destructive: 18 93% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success - Professional Green */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    /* Border & Input - Soft cyan-gray */
+    --border: 193 33% 87%;
+    --input: 193 33% 87%;
+    --ring: 186 100% 40%;
+
+    /* Chart colours */
+    --chart-1: 186 100% 40%;
+    --chart-2: 18 93% 48%;
+    --chart-3: 265 79% 58%;
+    --chart-4: 186 100% 30%;
+
+    /* Gradients - Organic teal-to-silver transitions */
+    --gradient-primary: linear-gradient(135deg, hsl(186 100% 40%) 0%, hsl(193 50% 70%) 100%);
+    --gradient-bearish: linear-gradient(135deg, hsl(18 93% 48%) 0%, hsl(18 93% 38%) 100%);
+    --gradient-ai: linear-gradient(135deg, hsl(265 79% 58%) 0%, hsl(265 79% 48%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(195 67% 97%) 100%);
+
+    /* Shadows - Soft elevation with teal tint */
+    --shadow-elevation-sm: 0 1px 3px hsl(186 100% 40% / 0.08), 0 1px 2px hsl(0 0% 0% / 0.06);
+    --shadow-elevation-md: 0 2px 8px hsl(186 100% 40% / 0.1), 0 2px 4px hsl(0 0% 0% / 0.06);
+    --shadow-elevation-lg: 0 4px 12px hsl(186 100% 40% / 0.12), 0 4px 8px hsl(0 0% 0% / 0.08);
+    --shadow-primary: 0 2px 8px hsl(186 100% 40% / 0.15);
+    --shadow-secondary: 0 2px 8px hsl(18 93% 48% / 0.15);
+    --shadow-accent: 0 2px 8px hsl(265 79% 58% / 0.15);
+    --shadow-card: 0 2px 12px hsl(193 33% 87% / 0.4);
+
+    /* Terminal radius - Sharp, squared-off */
+    --radius: 0.375rem;
+
+    /* Sidebar */
+    --sidebar-background: 195 67% 97%;
+    --sidebar-foreground: 196 38% 16%;
+    --sidebar-primary: 186 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 195 30% 90%;
+    --sidebar-accent-foreground: 196 38% 16%;
+    --sidebar-border: 193 33% 87%;
+    --sidebar-ring: 186 100% 40%;
+  }
+
+  .dark {
+    /* Dark Mode - Terminal Neon Cyber Theme */
+
     /* Void Black Background */
     --background: 0 0% 2%;
     --foreground: 0 0% 93%;
 
-    /* Surface/Cards – Slightly lighter charcoal */
+    /* Surface/Cards - Slightly lighter charcoal */
     --card: 0 0% 4%;
     --card-foreground: 0 0% 93%;
 
@@ -21,31 +105,31 @@
     --popover: 0 0% 4%;
     --popover-foreground: 0 0% 93%;
 
-    /* Primary – Electric Teal (Bullish/Long) */
+    /* Primary - Electric Teal (Bullish/Long) */
     --primary: 186 100% 50%;
     --primary-foreground: 0 0% 0%;
 
-    /* Secondary – Sharp Orange (Bearish/Short) */
+    /* Secondary - Sharp Orange (Bearish/Short) */
     --secondary: 18 100% 50%;
     --secondary-foreground: 0 0% 0%;
 
-    /* Muted – Cool Grey */
+    /* Muted - Cool Grey */
     --muted: 0 0% 8%;
     --muted-foreground: 0 0% 53%;
 
-    /* Accent – Electric Purple (AI/Neutral) */
+    /* Accent - Electric Purple (AI/Neutral) */
     --accent: 265 100% 76%;
     --accent-foreground: 0 0% 0%;
 
-    /* Destructive – Sharp Orange */
+    /* Destructive - Sharp Orange */
     --destructive: 18 100% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success – Bright Green (Bullish/Uptrend) */
+    /* Success - Bright Green (Bullish/Uptrend) */
     --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Border & Input – Subtle white borders */
+    /* Border & Input - Subtle white borders */
     --border: 0 0% 100% / 0.08;
     --input: 0 0% 100% / 0.08;
     --ring: 186 100% 50%;
@@ -62,49 +146,16 @@
     --gradient-ai: linear-gradient(135deg, hsl(265 100% 76%) 0%, hsl(265 100% 60%) 100%);
     --gradient-card: linear-gradient(135deg, hsl(0 0% 4%) 0%, hsl(0 0% 3%) 100%);
 
-    /* Shadows – Glowing effects */
-    --shadow-teal: 0 4px 20px hsl(186 100% 50% / 0.3);
-    --shadow-orange: 0 4px 20px hsl(18 100% 50% / 0.3);
-    --shadow-purple: 0 4px 20px hsl(265 100% 76% / 0.3);
+    /* Shadows - Neon glowing effects */
+    --shadow-elevation-sm: 0 4px 16px hsl(186 100% 50% / 0.2);
+    --shadow-elevation-md: 0 4px 20px hsl(186 100% 50% / 0.25);
+    --shadow-elevation-lg: 0 6px 30px hsl(186 100% 50% / 0.3);
+    --shadow-primary: 0 4px 20px hsl(186 100% 50% / 0.3);
+    --shadow-secondary: 0 4px 20px hsl(18 100% 50% / 0.3);
+    --shadow-accent: 0 4px 20px hsl(265 100% 76% / 0.3);
     --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.4);
 
-    /* Terminal radius – Sharp, squared-off */
-    --radius: 0.375rem;
-
     /* Sidebar */
-    --sidebar-background: 0 0% 3%;
-    --sidebar-foreground: 0 0% 93%;
-    --sidebar-primary: 186 100% 50%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 8%;
-    --sidebar-accent-foreground: 0 0% 93%;
-    --sidebar-border: 0 0% 100% / 0.08;
-    --sidebar-ring: 186 100% 50%;
-  }
-
-  /* Dark mode is now the default and only mode */
-  .dark {
-    --background: 0 0% 2%;
-    --foreground: 0 0% 93%;
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 93%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 93%;
-    --primary: 186 100% 50%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 18 100% 50%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 8%;
-    --muted-foreground: 0 0% 53%;
-    --accent: 265 100% 76%;
-    --accent-foreground: 0 0% 0%;
-    --destructive: 18 100% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 142 76% 45%;
-    --success-foreground: 0 0% 100%;
-    --border: 0 0% 100% / 0.08;
-    --input: 0 0% 100% / 0.08;
-    --ring: 186 100% 50%;
     --sidebar-background: 0 0% 3%;
     --sidebar-foreground: 0 0% 93%;
     --sidebar-primary: 186 100% 50%;
@@ -121,14 +172,9 @@
     @apply border-border;
   }
 
-  html {
-    @apply dark;
-  }
-
   body {
-    @apply min-h-screen bg-background text-foreground antialiased;
+    @apply min-h-screen bg-background text-foreground antialiased transition-colors duration-300;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    background-color: #050505;
     letter-spacing: -0.01em;
   }
 
@@ -167,40 +213,44 @@
     background-clip: text;
   }
 
-  /* Terminal card style */
+  /* Terminal card style - now theme-aware */
   .card-terminal {
-    background-color: #0A0A0A;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
+    @apply bg-card border border-border rounded-md;
   }
 
-  /* Glassmorphism for sidebar/headers */
+  /* Glassmorphism for sidebar/headers - theme-aware */
   .glass {
-    background-color: rgba(10, 10, 10, 0.8);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    @apply bg-card/80 backdrop-blur-md border border-border;
   }
 
-  /* Button glow effects – "Radioactive Core" look */
-  .glow-teal {
-    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+  /* Shadow utilities - theme-aware */
+  .shadow-primary {
+    box-shadow: var(--shadow-primary);
   }
 
-  .glow-orange {
-    box-shadow: 0 4px 20px rgba(255, 77, 0, 0.3);
+  .shadow-secondary {
+    box-shadow: var(--shadow-secondary);
   }
 
-  .glow-purple {
-    box-shadow: 0 4px 20px rgba(187, 134, 252, 0.3);
+  .shadow-accent {
+    box-shadow: var(--shadow-accent);
   }
 
-  /* Hover border glow */
-  .hover-glow-teal:hover {
-    box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.5), 0 4px 20px rgba(0, 240, 255, 0.2);
+  .shadow-elevation {
+    box-shadow: var(--shadow-elevation-md);
   }
 
-  .hover-glow-orange:hover {
-    box-shadow: 0 0 0 1px rgba(255, 77, 0, 0.5), 0 4px 20px rgba(255, 77, 0, 0.2);
+  .shadow-elevation-sm {
+    box-shadow: var(--shadow-elevation-sm);
+  }
+
+  .shadow-elevation-lg {
+    box-shadow: var(--shadow-elevation-lg);
+  }
+
+  /* Hover effects - theme-aware */
+  .hover-glow:hover {
+    box-shadow: var(--shadow-elevation-lg);
   }
 
   /* Data density helpers */
@@ -208,29 +258,29 @@
     @apply text-sm leading-tight;
   }
 
-  /* Bullish/Bearish color classes */
+  /* Semantic color classes - use CSS variables */
   .text-bullish {
-    color: #22C55E;
+    @apply text-success;
   }
 
   .text-bearish {
-    color: #FF4D00;
+    @apply text-secondary;
   }
 
   .text-neutral-ai {
-    color: #BB86FC;
+    @apply text-accent;
   }
 
   .bg-bullish {
-    background-color: #22C55E;
+    @apply bg-success;
   }
 
   .bg-bearish {
-    background-color: #FF4D00;
+    @apply bg-secondary;
   }
 
   .bg-neutral-ai {
-    background-color: #BB86FC;
+    @apply bg-accent;
   }
 
   /* Bento grid layout */
@@ -240,7 +290,7 @@
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
 
-  /* Cockpit density – minimal padding */
+  /* Cockpit density - minimal padding */
   .cockpit {
     @apply p-3 gap-2;
   }
@@ -253,27 +303,25 @@
   }
 }
 
-/* Scrollbar styling for terminal feel */
+/* Scrollbar styling - theme-aware */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #050505;
+  @apply bg-background;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  @apply bg-muted-foreground/20 rounded-sm;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  @apply bg-muted-foreground/30;
 }
 
-/* Selection styling */
+/* Selection styling - theme-aware */
 ::selection {
-  background: rgba(0, 240, 255, 0.3);
-  color: #EDEDED;
+  @apply bg-primary/30 text-foreground;
 }

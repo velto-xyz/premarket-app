@@ -2,18 +2,24 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Float } from '@react-three/drei';
 import { useRef } from 'react';
 import * as THREE from 'three';
+import { useTheme } from 'next-themes';
 
 interface Unicorn3DProps {
   color: string;
   companyName: string;
 }
 
-function UnicornModel({ color }: { color: string }) {
+function UnicornModel({ color, isDark }: { color: string; isDark: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const frontLeftLegRef = useRef<THREE.Mesh>(null);
   const frontRightLegRef = useRef<THREE.Mesh>(null);
   const backLeftLegRef = useRef<THREE.Mesh>(null);
   const backRightLegRef = useRef<THREE.Mesh>(null);
+
+  // Theme-aware emissive intensity: less glowing in light mode
+  const emissiveIntensity = isDark ? 0.4 : 0.2;
+  const particleEmissiveIntensity = isDark ? 1.0 : 0.5;
+  const ringEmissiveIntensity = isDark ? 0.8 : 0.4;
 
   // Running animation
   useFrame((state) => {
@@ -95,12 +101,12 @@ function UnicornModel({ color }: { color: string }) {
         {/* Horn - Geometric twisted */}
         <mesh position={[0, 2.1, 0.5]} rotation={[-0.2, 0, 0]} castShadow>
           <coneGeometry args={[0.12, 1.0, 6]} />
-          <meshStandardMaterial 
-            color="#FFD700" 
-            metalness={0.95} 
+          <meshStandardMaterial
+            color="#FFD700"
+            metalness={0.95}
             roughness={0.05}
             emissive="#FFD700"
-            emissiveIntensity={0.4}
+            emissiveIntensity={emissiveIntensity}
             flatShading={true}
           />
         </mesh>
@@ -118,12 +124,12 @@ function UnicornModel({ color }: { color: string }) {
             castShadow
           >
             <boxGeometry args={[0.06, 0.12, 0.06]} />
-            <meshStandardMaterial 
-              color="#FFD700" 
-              metalness={0.95} 
+            <meshStandardMaterial
+              color="#FFD700"
+              metalness={0.95}
               roughness={0.05}
               emissive="#FFD700"
-              emissiveIntensity={0.3}
+              emissiveIntensity={emissiveIntensity * 0.75}
               flatShading={true}
             />
           </mesh>
@@ -293,14 +299,14 @@ function UnicornModel({ color }: { color: string }) {
               rotation={[angle, angle * 2, 0]}
             >
               <octahedronGeometry args={[0.06, 0]} />
-              <meshStandardMaterial 
+              <meshStandardMaterial
                 color={color}
                 emissive={color}
-                emissiveIntensity={1.0}
+                emissiveIntensity={particleEmissiveIntensity}
                 metalness={0.9}
                 roughness={0.1}
                 transparent
-                opacity={0.8}
+                opacity={isDark ? 0.8 : 0.6}
                 flatShading={true}
               />
             </mesh>
@@ -315,14 +321,14 @@ function UnicornModel({ color }: { color: string }) {
             rotation={[Math.PI / 2, 0, 0]}
           >
             <torusGeometry args={[1.2 + i * 0.3, 0.02, 6, 16]} />
-            <meshStandardMaterial 
+            <meshStandardMaterial
               color={color}
               emissive={color}
-              emissiveIntensity={0.8}
+              emissiveIntensity={ringEmissiveIntensity}
               metalness={0.9}
               roughness={0.1}
               transparent
-              opacity={0.3 - i * 0.08}
+              opacity={(isDark ? 0.3 : 0.2) - i * 0.08}
               flatShading={true}
             />
           </mesh>
@@ -333,32 +339,42 @@ function UnicornModel({ color }: { color: string }) {
 }
 
 export default function Unicorn3D({ color, companyName }: Unicorn3DProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
+  // Theme-aware lighting: brighter ambient in light mode for visibility
+  const ambientIntensity = isDark ? 0.4 : 0.7;
+  const spotIntensity = isDark ? 1.0 : 1.5;
+  const pointIntensity1 = isDark ? 0.5 : 0.8;
+  const pointIntensity2 = isDark ? 0.3 : 0.5;
+  const shadowOpacity = isDark ? 0.2 : 0.35;
+
   return (
     <div className="w-full h-full rounded-lg overflow-hidden bg-gradient-to-br from-background to-background/50">
       <Canvas shadows>
         <PerspectiveCamera makeDefault position={[0, 0, 6]} />
-        
-        {/* Lighting */}
-        <ambientLight intensity={0.4} />
+
+        {/* Theme-aware lighting */}
+        <ambientLight intensity={ambientIntensity} />
         <spotLight
           position={[5, 5, 5]}
           angle={0.3}
           penumbra={1}
-          intensity={1}
+          intensity={spotIntensity}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
         />
-        <pointLight position={[-5, 3, -5]} intensity={0.5} color={color} />
-        <pointLight position={[5, -3, 5]} intensity={0.3} color="#ffffff" />
-        
+        <pointLight position={[-5, 3, -5]} intensity={pointIntensity1} color={color} />
+        <pointLight position={[5, -3, 5]} intensity={pointIntensity2} color="#ffffff" />
+
         {/* Unicorn */}
-        <UnicornModel color={color} />
-        
+        <UnicornModel color={color} isDark={isDark} />
+
         {/* Ground plane for shadows */}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]}>
           <planeGeometry args={[10, 10]} />
-          <shadowMaterial opacity={0.2} />
+          <shadowMaterial opacity={shadowOpacity} />
         </mesh>
         
         {/* Controls */}

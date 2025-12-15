@@ -10,26 +10,26 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary – Electric Teal with glow (Bullish action button)
-        default: "bg-[#00F0FF] text-black font-semibold shadow-[0_4px_20px_rgba(0,240,255,0.3)] hover:shadow-[0_6px_30px_rgba(0,240,255,0.4)] hover:bg-[#00D4E0] active:scale-[0.98]",
-        
-        // Destructive/Bearish – Sharp Orange with glow
-        destructive: "bg-[#FF4D00] text-black font-semibold shadow-[0_4px_20px_rgba(255,77,0,0.3)] hover:shadow-[0_6px_30px_rgba(255,77,0,0.4)] hover:bg-[#E04500] active:scale-[0.98]",
-        
-        // Outline – Transparent with white border, hover glow
-        outline: "border border-white/20 bg-transparent text-white hover:border-[#00F0FF]/50 hover:shadow-[0_0_0_1px_rgba(0,240,255,0.3)] active:scale-[0.98]",
-        
-        // Secondary – Sharp Orange (Bearish)
-        secondary: "bg-[#FF4D00] text-black font-semibold shadow-[0_4px_20px_rgba(255,77,0,0.3)] hover:shadow-[0_6px_30px_rgba(255,77,0,0.4)] hover:bg-[#E04500] active:scale-[0.98]",
-        
+        // Primary – Professional Teal with theme-aware glow (Bullish action button)
+        default: "bg-primary text-primary-foreground font-semibold shadow-primary hover:shadow-elevation-lg hover:bg-primary/90 active:scale-[0.98]",
+
+        // Destructive/Bearish – Warm Orange with theme-aware glow
+        destructive: "bg-destructive text-destructive-foreground font-semibold shadow-secondary hover:shadow-elevation-lg hover:bg-destructive/90 active:scale-[0.98]",
+
+        // Outline – Transparent with border, hover glow
+        outline: "border border-border bg-transparent text-foreground hover:border-primary/50 hover:shadow-primary active:scale-[0.98]",
+
+        // Secondary – Warm Orange (Bearish)
+        secondary: "bg-secondary text-secondary-foreground font-semibold shadow-secondary hover:shadow-elevation-lg hover:bg-secondary/90 active:scale-[0.98]",
+
         // Ghost – Minimal, transparent
-        ghost: "bg-transparent text-white/80 hover:bg-white/5 hover:text-white active:scale-[0.98]",
-        
+        ghost: "bg-transparent text-foreground/80 hover:bg-muted/50 hover:text-foreground active:scale-[0.98]",
+
         // Link
-        link: "text-[#00F0FF] underline-offset-4 hover:underline",
-        
+        link: "text-primary underline-offset-4 hover:underline",
+
         // AI/Purple accent
-        ai: "bg-[#BB86FC] text-black font-semibold shadow-[0_4px_20px_rgba(187,134,252,0.3)] hover:shadow-[0_6px_30px_rgba(187,134,252,0.4)] hover:bg-[#A66DE8] active:scale-[0.98]",
+        ai: "bg-accent text-accent-foreground font-semibold shadow-accent hover:shadow-elevation-lg hover:bg-accent/90 active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-5",

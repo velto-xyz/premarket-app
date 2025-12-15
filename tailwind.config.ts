@@ -83,12 +83,6 @@ export default {
           "4": "hsl(var(--chart-4))",
         },
 
-        // Terminal-specific semantic colors
-        bullish: "#22C55E",
-        bearish: "#FF4D00",
-        "ai-purple": "#BB86FC",
-        "void-black": "#050505",
-        "surface-dark": "#0A0A0A",
       },
       
       fontFamily: {
@@ -104,14 +98,10 @@ export default {
         sm: "2px",
       },
       
-      // Box shadows with glow effects
+      // Box shadows - now theme-aware via CSS variables
+      // Use shadow-primary, shadow-secondary, shadow-accent utility classes instead
       boxShadow: {
-        'glow-teal': '0 4px 20px rgba(0, 240, 255, 0.3)',
-        'glow-orange': '0 4px 20px rgba(255, 77, 0, 0.3)',
-        'glow-purple': '0 4px 20px rgba(187, 134, 252, 0.3)',
-        'card': '0 4px 24px rgba(0, 0, 0, 0.4)',
-        'glow-teal-lg': '0 8px 40px rgba(0, 240, 255, 0.4)',
-        'glow-orange-lg': '0 8px 40px rgba(255, 77, 0, 0.4)',
+        'card': 'var(--shadow-card)',
       },
       
       keyframes: {

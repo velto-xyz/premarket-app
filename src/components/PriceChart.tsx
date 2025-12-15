@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface PriceChartProps {
   startupName: string;
@@ -76,6 +77,7 @@ export default function PriceChart({
   color = "#8B5CF6",
 }: PriceChartProps) {
   const [timeframe, setTimeframe] = useState<TimeFrame>("1M");
+  const { resolvedTheme } = useTheme();
 
   const chartData = useMemo(
     () => generatePriceHistory(currentPrice, priceChange24h, timeframe),
@@ -83,7 +85,12 @@ export default function PriceChart({
   );
 
   const isPositive = priceChange24h >= 0;
-  const chartColor = isPositive ? "#10b981" : "#ef4444";
+  const isDark = resolvedTheme === "dark";
+
+  // Theme-aware chart colors: brighter in dark mode, more muted in light mode
+  const chartColor = isPositive
+    ? (isDark ? "#10b981" : "#16A34A")  // Green: bright in dark, professional in light
+    : (isDark ? "#ef4444" : "#EA580C"); // Red/Orange: bright in dark, warm in light
 
   const prices = chartData.map((d) => d.price).filter((p) => p > 0);
   const minPrice = prices.length > 0 ? Math.min(...prices) : 0;

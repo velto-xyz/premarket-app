@@ -4,13 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Activity, DollarSign, Percent, Building, Trophy, Wallet } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Activity, DollarSign, Percent, Building, Trophy, Wallet, ArrowDownToLine } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { startupLogos } from "@/assets/logos";
 import unicornPodiumVideo from "@/assets/unicorn-podium.mp4";
 import { getTicker } from "@/lib/tickers";
 import PortfolioNewsTicker from "@/components/PortfolioNewsTicker";
+import { useAccount } from "wagmi";
+import { toast } from "sonner";
 // Mock data for demonstration
 const portfolioData = {
   totalValue: 128430,
@@ -69,14 +74,65 @@ const activities = [
 
 export default function Portfolio() {
   const navigate = useNavigate();
+  const { address } = useAccount();
   const [dateRange, setDateRange] = useState("30d");
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [activityFilter, setActivityFilter] = useState("all");
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
+  // TODO: Replace with actual balance from ContractSource
+  const internalBalance = 0; // Mock internal balance
 
   const filteredActivities = activities.filter(activity => {
     if (activityFilter === "all") return true;
     return activity.action.toLowerCase() === activityFilter;
   });
+
+  const handleWithdraw = async () => {
+    if (!address) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    const amount = parseFloat(withdrawAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    if (amount > internalBalance) {
+      toast.error("Insufficient balance");
+      return;
+    }
+
+    setIsWithdrawing(true);
+    try {
+      // TODO: Implement actual withdraw using ContractSource
+      // const storageLayer = new StorageLayer(walletClient);
+      // const result = await storageLayer.contractSource.withdraw(
+      //   address,
+      //   perpEngineAddress,
+      //   amount
+      // );
+      // if (result.status === 'success') {
+      //   toast.success("Withdrawal successful!");
+      //   setWithdrawModalOpen(false);
+      //   setWithdrawAmount("");
+      // } else {
+      //   toast.error(result.error || "Withdrawal failed");
+      // }
+
+      toast.info("Withdraw function will be implemented soon");
+      setWithdrawModalOpen(false);
+      setWithdrawAmount("");
+    } catch (error: any) {
+      toast.error(error.message || "Withdrawal failed");
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   return (
     <AppLayout>
@@ -104,7 +160,7 @@ export default function Portfolio() {
       </div>
 
       {/* Section 1: Portfolio KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card className="hover:shadow-[var(--shadow-card)] transition-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -180,6 +236,32 @@ export default function Portfolio() {
               {portfolioData.numStartups}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Across all industries</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-[var(--shadow-card)] transition-shadow">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Internal Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold font-mono text-foreground">
+              ${internalBalance.toLocaleString()}
+            </div>
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-xs"
+                onClick={() => setWithdrawModalOpen(true)}
+                disabled={internalBalance === 0}
+              >
+                <ArrowDownToLine className="h-3 w-3 mr-1" />
+                Withdraw
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -476,6 +558,55 @@ export default function Portfolio() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Withdraw Modal */}
+      <Dialog open={withdrawModalOpen} onOpenChange={setWithdrawModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Withdraw USDC</DialogTitle>
+            <DialogDescription>
+              Withdraw USDC from your internal balance to your wallet. Available balance: ${internalBalance.toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount (USDC)</Label>
+              <div className="relative">
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="0.00"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="pr-16"
+                  step="0.01"
+                  min="0"
+                  max={internalBalance}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-xs"
+                  onClick={() => setWithdrawAmount(internalBalance.toString())}
+                >
+                  MAX
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Transaction will convert internal balance (18 decimals) to USDC (6 decimals)
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWithdrawModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleWithdraw} disabled={isWithdrawing || !withdrawAmount}>
+              {isWithdrawing ? "Withdrawing..." : "Withdraw"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </AppLayout>
   );

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { storage } from "@/lib/storage";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,26 +10,57 @@ import TradingPanel from "@/components/trading/TradingPanel";
 import PositionsPanel from "@/components/trading/PositionsPanel";
 import LiquidationMonitor from "@/components/trading/LiquidationMonitor";
 import NewsTicker from "@/components/NewsTicker";
-import unicornVideo from "@/assets/unicorn-visualization.mp4";
+import Unicorn3D from "@/components/Unicorn3D";
 import { startupLogos } from "@/assets/logos";
 import { getTicker } from "@/lib/tickers";
+import { formatUSD, formatCompact } from "@/lib/format";
 
 export default function StartupDetail() {
   const { startupSlug } = useParams();
 
-  const { data: startup, isLoading } = useQuery({
-    queryKey: ["startup", startupSlug],
+  const { data: market, isLoading } = useQuery({
+    queryKey: ["market", startupSlug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("startups")
-        .select("*, industries(*)")
-        .eq("slug", startupSlug)
-        .single();
-
-      if (error) throw error;
-      return data;
+      if (!startupSlug) return null;
+      return await storage.getMarket(startupSlug);
     },
   });
+
+  // Get industry info (temporary - until we add to storage layer)
+  const { data: industry } = useQuery({
+    queryKey: ["industry", market?.industryId],
+    queryFn: async () => {
+      if (!market?.industryId) return null;
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase
+        .from("industries")
+        .select("*")
+        .eq("id", market.industryId)
+        .single();
+      return data;
+    },
+    enabled: !!market?.industryId,
+  });
+
+  // Transform to match component expectations
+  const startup = market ? {
+    id: market.id,
+    name: market.name,
+    slug: market.slug,
+    description: market.description,
+    logo_url: market.logoUrl,
+    industry_id: market.industryId,
+    hq_location: market.hqLocation,
+    hq_latitude: market.hqLatitude,
+    hq_longitude: market.hqLongitude,
+    current_price: market.currentPrice,
+    price_change_24h: market.priceChange24h,
+    market_cap: market.quoteReserve,  // quoteReserve is the market cap in vAMM model
+    unicorn_color: market.unicornColor,
+    year_founded: market.yearFounded,
+    founders: market.founders,
+    industries: industry
+  } : null;
 
   if (isLoading) {
     return (
@@ -103,7 +134,7 @@ export default function StartupDetail() {
                       Market Cap
                     </div>
                     <div className="text-2xl font-bold">
-                      ${(startup.market_cap || 0).toLocaleString()}
+                      ${formatCompact(startup.market_cap || 0)}
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-card border border-border shadow-sm">
@@ -151,32 +182,23 @@ export default function StartupDetail() {
               </CardContent>
             </Card>
 
-            {/* Unicorn Visualization */}
-            <Card className="glass border-border overflow-hidden" style={{ backgroundColor: '#0A0A0A' }}>
+            {/* Unicorn Visualization - 3D Interactive */}
+            <Card className="glass border-border overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-mono">
                   {getTicker(startup.slug)} Unicorn
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div 
-                  className="w-full flex items-center justify-center" 
-                  style={{ backgroundColor: '#050505' }}
-                >
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-auto object-contain"
-                    style={{ maxHeight: '500px' }}
-                  >
-                    <source src={unicornVideo} type="video/mp4" />
-                  </video>
+                <div className="w-full h-[400px]">
+                  <Unicorn3D
+                    color={startup.unicorn_color || '#8B5CF6'}
+                    companyName={startup.name}
+                  />
                 </div>
-                <div className="px-6 py-4 border-t border-border/40" style={{ backgroundColor: '#0A0A0A' }}>
+                <div className="px-6 py-4 border-t border-border">
                   <p className="text-sm text-muted-foreground text-center">
-                    Startup Visualization. You're betting on this future Unicorn!
+                    Interactive 3D visualization. You're betting on this future Unicorn!
                   </p>
                 </div>
               </CardContent>
@@ -189,10 +211,11 @@ export default function StartupDetail() {
             <TradingPanel
               startupId={startup.id}
               startupName={startup.name}
+              startupSlug={startupSlug!}
               currentPrice={startup.current_price}
             />
             <PositionsPanel
-              startupId={startup.id}
+              startupSlug={startup.slug}
               currentPrice={startup.current_price}
             />
           </div>

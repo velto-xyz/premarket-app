@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { storage, StorageLayer } from "@/lib/storage";
+import { useAccount, useWalletClient } from "wagmi";
+import type { Position as StoragePosition } from "@/types/models";
 
+// Legacy interface for backward compatibility
+// TODO: Migrate components to use Position from @/types/models
 export interface Position {
   id: string;
   user_id: string;
@@ -16,65 +20,76 @@ export interface Position {
   updated_at: string;
 }
 
-export const usePositions = (startupId?: string) => {
+// Map storage position to legacy format
+function mapStoragePositionToLegacy(pos: StoragePosition): Position {
+  return {
+    id: pos.id,
+    user_id: pos.userId,
+    startup_id: pos.marketId,
+    position_type: pos.positionType,
+    entry_price: pos.entryPrice,
+    quantity: pos.baseSize,
+    leverage: pos.leverage,
+    liquidation_price: pos.liquidationPrice,
+    status: pos.status,
+    created_at: pos.openedAt.toISOString(),
+    updated_at: pos.openedAt.toISOString(),
+  };
+}
+
+export const usePositions = (startupSlug?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
 
   const { data: positions, isLoading } = useQuery({
-    queryKey: ["positions", startupId],
+    queryKey: ["positions", address, startupSlug],
     queryFn: async () => {
-      const query = supabase
-        .from("user_positions")
-        .select("*")
-        .eq("status", "open");
-
-      if (startupId) {
-        query.eq("startup_id", startupId);
+      if (!address) {
+        return [];
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as Position[];
+      if (startupSlug) {
+        // Get positions for specific market
+        const storagePositions = await storage.getUserMarketPositions(address, startupSlug);
+        return storagePositions.map(mapStoragePositionToLegacy);
+      } else {
+        // Get all user positions across all markets
+        const storagePositions = await storage.getUserOpenPositions(address);
+        return storagePositions.map(mapStoragePositionToLegacy);
+      }
     },
+    enabled: !!address,
   });
 
   const openPosition = useMutation({
     mutationFn: async ({
-      startupId,
+      startupSlug,
       positionType,
-      currentPrice,
-      quantity,
+      amount,
       leverage,
     }: {
-      startupId: string;
+      startupSlug: string;
       positionType: "long" | "short";
-      currentPrice: number;
-      quantity: number;
+      amount: number;
       leverage: number;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!address) throw new Error("Wallet not connected");
 
-      // Calculate liquidation price
-      const liquidationPrice =
-        positionType === "long"
-          ? currentPrice * (1 - 1 / leverage)
-          : currentPrice * (1 + 1 / leverage);
-
-      const { data, error } = await supabase.from("user_positions").insert({
-        user_id: user.id,
-        startup_id: startupId,
-        position_type: positionType,
-        entry_price: currentPrice,
-        quantity,
+      // Open position via storage layer (which calls contracts)
+      const result = await storage.openPosition(address, {
+        marketSlug: startupSlug,
+        side: positionType,
+        totalAmount: amount,
         leverage,
-        liquidation_price: liquidationPrice,
-        status: "open",
-      }).select().single();
+      });
 
-      if (error) throw error;
-      return data;
+      if (result.status === "failed") {
+        throw new Error(result.error || "Failed to open position");
+      }
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["positions"] });
@@ -94,12 +109,27 @@ export const usePositions = (startupId?: string) => {
 
   const closePosition = useMutation({
     mutationFn: async (positionId: string) => {
-      const { error } = await supabase
-        .from("user_positions")
-        .update({ status: "closed" })
-        .eq("id", positionId);
+      if (!address || !walletClient) throw new Error("Wallet not connected");
+      if (!startupSlug) throw new Error("Market slug required to close position");
 
-      if (error) throw error;
+      const walletStorage = new StorageLayer(walletClient);
+      const contractInfo = await walletStorage['supabase'].getMarketContractInfoBySlug(startupSlug);
+
+      if (!contractInfo) {
+        throw new Error(`Market ${startupSlug} does not have contracts deployed`);
+      }
+
+      const result = await walletStorage.contracts.closePosition(
+        address,
+        contractInfo.perpEngineAddress,
+        { positionId }
+      );
+
+      if (result.status === "failed") {
+        throw new Error(result.error || "Failed to close position");
+      }
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["positions"] });

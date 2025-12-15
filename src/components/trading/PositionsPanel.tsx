@@ -9,15 +9,22 @@ import {
 } from "@/hooks/usePositions";
 
 interface PositionsPanelProps {
-  startupId: string;
+  startupSlug: string;
   currentPrice: number;
 }
 
 export default function PositionsPanel({
-  startupId,
+  startupSlug,
   currentPrice,
 }: PositionsPanelProps) {
-  const { positions, isLoading, closePosition } = usePositions(startupId);
+  const { positions, isLoading, closePosition } = usePositions(startupSlug);
+
+  console.log('[PositionsPanel] Render:', {
+    startupSlug,
+    isLoading,
+    positionsCount: positions?.length || 0,
+    positions
+  })
 
   if (isLoading) {
     return (
@@ -41,8 +48,13 @@ export default function PositionsPanel({
           <CardTitle>Your Positions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground py-8">
-            No open positions for this startup
+          <div className="text-center py-8 space-y-2">
+            <div className="text-muted-foreground">
+              No open positions for this startup
+            </div>
+            <div className="text-xs text-muted-foreground">
+              New positions will appear here after opening a trade
+            </div>
           </div>
         </CardContent>
       </Card>

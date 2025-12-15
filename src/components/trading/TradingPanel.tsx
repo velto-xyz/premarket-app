@@ -4,52 +4,58 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { TrendingUp, TrendingDown, AlertTriangle, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Info, Wallet } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { usePositions } from "@/hooks/usePositions";
+import { useTrading } from "@/hooks/useTrading";
 
 interface TradingPanelProps {
   startupId: string;
   startupName: string;
+  startupSlug: string;
   currentPrice: number;
 }
 
 export default function TradingPanel({
   startupId,
   startupName,
+  startupSlug,
   currentPrice,
 }: TradingPanelProps) {
   const [positionType, setPositionType] = useState<"long" | "short">("long");
-  const [quantity, setQuantity] = useState<string>("1");
+  const [amount, setAmount] = useState<string>("100");
   const [leverage, setLeverage] = useState<number>(1);
-  const { openPosition } = usePositions(startupId);
+  const { openPosition, internalBalance, isConnected } = useTrading(startupSlug);
 
-  const quantityNum = parseFloat(quantity) || 0;
-  const investment = currentPrice * quantityNum;
+  const amountNum = parseFloat(amount) || 0;
+  const investment = amountNum;
   const potentialGain = investment * leverage * 0.1; // 10% move example
   const liquidationPrice =
     positionType === "long"
       ? currentPrice * (1 - 1 / leverage)
       : currentPrice * (1 + 1 / leverage);
 
+  const needsDeposit = amountNum > internalBalance;
+
   const handleOpenPosition = () => {
-    if (quantityNum <= 0) return;
+    if (amountNum <= 0) return;
+    if (!isConnected) {
+      return;
+    }
 
     openPosition.mutate({
-      startupId,
+      marketSlug: startupSlug,
       positionType,
-      currentPrice,
-      quantity: quantityNum,
+      amount: amountNum,
       leverage,
     });
 
     // Reset form
-    setQuantity("1");
+    setAmount("100");
     setLeverage(1);
   };
 
@@ -83,18 +89,36 @@ export default function TradingPanel({
           </Button>
         </div>
 
-        {/* Quantity Input */}
+        {/* Internal Balance Display */}
+        {isConnected && (
+          <div className="p-3 rounded-lg bg-background/50 border border-border">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Wallet className="h-4 w-4" />
+                Internal Balance
+              </span>
+              <span className="font-mono font-semibold">${internalBalance.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Amount Input */}
         <div className="space-y-2">
-          <Label htmlFor="quantity">Quantity (Shares)</Label>
+          <Label htmlFor="amount">Amount (USDC)</Label>
           <Input
-            id="quantity"
+            id="amount"
             type="number"
-            min="0.01"
-            step="0.01"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder="Enter quantity"
+            min="1"
+            step="1"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Enter amount"
           />
+          {needsDeposit && isConnected && (
+            <p className="text-xs text-amber-500">
+              Will deposit ${(amountNum - internalBalance).toFixed(2)} from wallet
+            </p>
+          )}
         </div>
 
         {/* Leverage Slider */}
@@ -193,15 +217,26 @@ export default function TradingPanel({
         {/* Open Position Button */}
         <Button
           onClick={handleOpenPosition}
-          disabled={quantityNum <= 0 || openPosition.isPending}
+          disabled={!isConnected || amountNum <= 0 || openPosition.isPending}
           className="w-full glow"
           size="lg"
         >
-          {openPosition.isPending ? "Processing..." : "Confirm Trade"}
+          {!isConnected
+            ? "Connect Wallet to Trade"
+            : openPosition.isPending
+            ? "Processing..."
+            : needsDeposit
+            ? "Deposit & Trade"
+            : "Confirm Trade"}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
           Trading fee: 0.1% • Max multiplier: 10x
+          {needsDeposit && isConnected && (
+            <span className="block mt-1 text-amber-500">
+              Requires 2 transactions: Approve + Deposit
+            </span>
+          )}
         </p>
       </CardContent>
     </Card>

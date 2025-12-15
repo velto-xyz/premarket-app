@@ -4,6 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 
 interface Startup {
   id: string;
@@ -21,38 +22,62 @@ interface Startup {
 }
 
 // Helper function to get heat color and size based on price change
-const getHeatStyle = (priceChange: number | null | undefined) => {
+const getHeatStyle = (priceChange: number | null | undefined, isDark: boolean = true) => {
   const change = priceChange ?? 0;
   const absChange = Math.abs(change);
-  
+
   // Size: base 14px, scales up to 28px for large changes (capped at 50%)
   const sizeMultiplier = Math.min(absChange / 50, 1);
   const size = 14 + (sizeMultiplier * 14);
-  
+
   // Color: green for positive, red for negative, with intensity based on magnitude
+  // Theme-aware: brighter/neon in dark mode, more muted in light mode
   let color: string;
   let glowColor: string;
-  
+
   if (change > 0) {
     // Green gradient: from light green to bright green
     const intensity = Math.min(change / 30, 1);
-    const greenValue = Math.round(180 + (intensity * 75));
-    const redValue = Math.round(80 - (intensity * 60));
-    color = `rgb(${redValue}, ${greenValue}, 80)`;
-    glowColor = `rgba(34, 197, 94, ${0.4 + intensity * 0.4})`;
+    if (isDark) {
+      // Dark mode: bright neon green
+      const greenValue = Math.round(180 + (intensity * 75));
+      const redValue = Math.round(80 - (intensity * 60));
+      color = `rgb(${redValue}, ${greenValue}, 80)`;
+      glowColor = `rgba(34, 197, 94, ${0.4 + intensity * 0.4})`;
+    } else {
+      // Light mode: darker, more saturated green for visibility
+      const greenValue = Math.round(120 + (intensity * 60));
+      const redValue = Math.round(40 - (intensity * 30));
+      color = `rgb(${redValue}, ${greenValue}, 50)`;
+      glowColor = `rgba(22, 163, 74, ${0.2 + intensity * 0.3})`;
+    }
   } else if (change < 0) {
     // Red gradient: from light red to bright red
     const intensity = Math.min(absChange / 30, 1);
-    const redValue = Math.round(180 + (intensity * 75));
-    const greenValue = Math.round(80 - (intensity * 60));
-    color = `rgb(${redValue}, ${greenValue}, 80)`;
-    glowColor = `rgba(239, 68, 68, ${0.4 + intensity * 0.4})`;
+    if (isDark) {
+      // Dark mode: bright neon red
+      const redValue = Math.round(180 + (intensity * 75));
+      const greenValue = Math.round(80 - (intensity * 60));
+      color = `rgb(${redValue}, ${greenValue}, 80)`;
+      glowColor = `rgba(239, 68, 68, ${0.4 + intensity * 0.4})`;
+    } else {
+      // Light mode: darker, more saturated red/orange
+      const redValue = Math.round(180 + (intensity * 60));
+      const greenValue = Math.round(60 - (intensity * 40));
+      color = `rgb(${redValue}, ${greenValue}, 30)`;
+      glowColor = `rgba(234, 88, 12, ${0.2 + intensity * 0.3})`;
+    }
   } else {
-    // Neutral: gray/purple
-    color = '#8B5CF6';
-    glowColor = 'rgba(139, 92, 246, 0.5)';
+    // Neutral: purple
+    if (isDark) {
+      color = '#8B5CF6';
+      glowColor = 'rgba(139, 92, 246, 0.5)';
+    } else {
+      color = '#7C3AED';
+      glowColor = 'rgba(124, 58, 237, 0.3)';
+    }
   }
-  
+
   return { size, color, glowColor, change };
 };
 
@@ -72,6 +97,8 @@ const Map = forwardRef<MapRef, MapProps>(({ startups, selectedStartupId }, ref) 
   const [mapboxToken, setMapboxToken] = useState<string>('');
   const [isTokenSet, setIsTokenSet] = useState(false);
   const navigate = useNavigate();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -104,12 +131,12 @@ const Map = forwardRef<MapRef, MapProps>(({ startups, selectedStartupId }, ref) 
       }
     });
 
-    // Style selected marker with orange theme color
+    // Style selected marker with theme-aware orange color
     if (selectedStartupId) {
       const markerData = markersRef.current[selectedStartupId];
       if (markerData) {
-        const orangeColor = '#F97316'; // Primary orange
-        const orangeGlow = 'rgba(249, 115, 22, 0.8)';
+        const orangeColor = isDark ? '#F97316' : '#EA580C'; // Brighter in dark, warmer in light
+        const orangeGlow = isDark ? 'rgba(249, 115, 22, 0.8)' : 'rgba(234, 88, 12, 0.5)';
         markerData.element.style.backgroundColor = orangeColor;
         markerData.element.style.boxShadow = `0 0 25px ${orangeGlow}, 0 0 50px ${orangeGlow}`;
         markerData.element.style.width = '24px';
@@ -131,9 +158,12 @@ const Map = forwardRef<MapRef, MapProps>(({ startups, selectedStartupId }, ref) 
 
     mapboxgl.accessToken = mapboxToken;
     
+    // Theme-aware Mapbox style
+    const mapStyle = isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11';
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: mapStyle,
       projection: 'globe' as any,
       zoom: 1.5,
       center: [30, 15],
@@ -150,9 +180,13 @@ const Map = forwardRef<MapRef, MapProps>(({ startups, selectedStartupId }, ref) 
     map.current.scrollZoom.disable();
 
     map.current.on('style.load', () => {
+      // Theme-aware fog colors
+      const fogColor = isDark ? 'rgb(15, 15, 30)' : 'rgb(200, 215, 230)';
+      const fogHighColor = isDark ? 'rgb(40, 20, 60)' : 'rgb(230, 240, 250)';
+
       map.current?.setFog({
-        color: 'rgb(15, 15, 30)',
-        'high-color': 'rgb(40, 20, 60)',
+        color: fogColor,
+        'high-color': fogHighColor,
         'horizon-blend': 0.2,
       });
 
@@ -162,7 +196,7 @@ const Map = forwardRef<MapRef, MapProps>(({ startups, selectedStartupId }, ref) 
       // Add markers for startups
       startups.forEach((startup) => {
         if (startup.hq_latitude && startup.hq_longitude && map.current) {
-          const { size, color, glowColor, change } = getHeatStyle(startup.price_change_24h);
+          const { size, color, glowColor, change } = getHeatStyle(startup.price_change_24h, isDark);
           const changeSign = change > 0 ? '+' : '';
           const changeDisplay = `${changeSign}${change.toFixed(2)}%`;
           

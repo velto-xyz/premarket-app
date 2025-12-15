@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { storage } from "@/lib/storage";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import * as Icons from "lucide-react";
@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useMemo, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
+import { useMarketDataStream } from "@/hooks/useMarketDataStream";
 
 type TimeFrame = "1h" | "24h" | "7d" | "1m";
 
@@ -14,9 +15,11 @@ export default function Industries() {
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState<TimeFrame>("24h");
 
+  //  Industries still from Supabase (not migrated to storage layer yet)
   const { data: industries, isLoading } = useQuery({
     queryKey: ["industries"],
     queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
       const { data, error } = await supabase
         .from("industries")
         .select("*")
@@ -27,17 +30,21 @@ export default function Industries() {
     },
   });
 
-  const { data: startups } = useQuery({
-    queryKey: ["all-startups"],
+  const { data: markets } = useQuery({
+    queryKey: ["all-markets"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("startups")
-        .select("*");
-
-      if (error) throw error;
-      return data;
+      return await storage.getAllMarkets();
     },
   });
+
+  // Stream real-time market data from contracts (polls every 3s)
+  useMarketDataStream(markets);
+
+  // Transform to match component expectations
+  const startups = markets?.map(m => ({
+    id: m.id,
+    market_cap: m.marketCap
+  }));
 
   const totalMarketCap = useMemo(() => {
     if (!startups) return 0;

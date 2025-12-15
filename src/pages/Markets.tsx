@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { storage } from "@/lib/storage";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { startupLogos } from "@/assets/logos";
 import { getTicker } from "@/lib/tickers";
+import { formatUSD, formatPercent } from "@/lib/format";
+import { useMarketDataStream } from "@/hooks/useMarketDataStream";
 
 // Seeded random for consistent sparkline data per startup
 const seededRandom = (seed: number) => {
@@ -47,9 +49,11 @@ export default function Markets() {
     return () => clearInterval(interval);
   }, []);
 
+  // Industries still from Supabase directly (not in storage layer yet)
   const { data: industries } = useQuery({
     queryKey: ["industries"],
     queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
       const { data, error } = await supabase
         .from("industries")
         .select("*")
@@ -69,18 +73,34 @@ export default function Markets() {
     }
   }, [industrySlug, industries]);
 
-  const { data: startups, isLoading } = useQuery({
-    queryKey: ["all-startups"],
+  const { data: markets, isLoading } = useQuery({
+    queryKey: ["all-markets"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("startups")
-        .select("*, industries(*)")
-        .order("name");
-
-      if (error) throw error;
-      return data;
+      return await storage.getAllMarkets();
     },
   });
+
+  // Stream real-time market data from contracts (polls every 3s)
+  useMarketDataStream(markets);
+
+  // Transform Market[] to match component expectations (temporary compatibility layer)
+  const startups = markets?.map(m => ({
+    id: m.id,
+    name: m.name,
+    slug: m.slug,
+    description: m.description,
+    logo_url: m.logoUrl,
+    industry_id: m.industryId,
+    hq_location: m.hqLocation,
+    hq_latitude: m.hqLatitude,
+    hq_longitude: m.hqLongitude,
+    current_price: m.currentPrice,
+    price_change_24h: m.priceChange24h,
+    market_cap: m.quoteReserve,  // quoteReserve is the market cap in vAMM model
+    year_founded: m.yearFounded,
+    unicorn_color: m.unicornColor,
+    industries: industries?.find(ind => ind.id === m.industryId)
+  }));
 
   // Extract unique regions from startup locations
   const regions = useMemo(() => {
@@ -299,7 +319,7 @@ export default function Markets() {
 
                       <div className="text-right">
                         <div className="text-2xl font-bold">
-                          ${startup.current_price}
+                          {formatUSD(startup.current_price)}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           Current Price
@@ -316,7 +336,7 @@ export default function Markets() {
                           <TrendingDown className="w-4 h-4" />
                         )}
                         {isPositive ? "+" : ""}
-                        {startup.price_change_24h}%
+                        {formatPercent(startup.price_change_24h || 0)}
                       </Badge>
                     </div>
                   </div>
