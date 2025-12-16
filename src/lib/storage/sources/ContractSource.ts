@@ -75,6 +75,37 @@ export class ContractSource {
   }
 
   /**
+   * Simulate opening a position to get estimated entry price with slippage
+   */
+  async simulateOpenPosition(
+    perpMarketAddress: string,
+    isLong: boolean,
+    notional: number
+  ): Promise<{ baseSize: number; avgPrice: number; slippage: number }> {
+    const notionalBigInt = BigInt(Math.floor(notional * 1e18))
+
+    const result = await this.marketDataService.simulateOpenPosition(
+      perpMarketAddress as Address,
+      isLong,
+      notionalBigInt
+    )
+
+    const avgPrice = Number(result.avgPrice) / 1e18
+    const markPrice = Number(await this.marketDataService.getMarkPrice(perpMarketAddress as Address)) / 1e18
+
+    // Calculate slippage as percentage difference from mark price
+    const slippage = isLong
+      ? ((avgPrice - markPrice) / markPrice) * 100
+      : ((markPrice - avgPrice) / markPrice) * 100
+
+    return {
+      baseSize: Number(result.baseSize) / 1e18,
+      avgPrice,
+      slippage
+    }
+  }
+
+  /**
    * Get user's open positions for a market
    */
   async getUserOpenPositions(
@@ -85,15 +116,6 @@ export class ContractSource {
     marketId: string,
     marketSlug: string
   ): Promise<AppPosition[]> {
-    console.log('[ContractSource] getUserOpenPositions:', {
-      userAddress,
-      perpEngineAddress,
-      positionManagerAddress,
-      deploymentBlock,
-      marketId,
-      marketSlug
-    })
-
     const positions = await this.positionsService.getUserOpenPositions(
       perpEngineAddress as Address,
       positionManagerAddress as Address,
@@ -101,10 +123,8 @@ export class ContractSource {
       BigInt(deploymentBlock)
     )
 
-    console.log('[ContractSource] Mapping', positions.length, 'positions')
-
     return positions.map(pos =>
-      this.mapContractPositionToAppPosition(pos, marketId, marketSlug)
+      this.mapContractPositionToAppPosition(pos, marketId, marketSlug, perpEngineAddress)
     )
   }
 
@@ -125,7 +145,7 @@ export class ContractSource {
     )
 
     return positions.map(pos =>
-      this.mapContractPositionToAppPosition(pos, marketId, marketSlug)
+      this.mapContractPositionToAppPosition(pos, marketId, marketSlug, perpEngineAddress)
     )
   }
 
@@ -136,7 +156,8 @@ export class ContractSource {
     positionManagerAddress: string,
     positionId: string,
     marketId: string,
-    marketSlug: string
+    marketSlug: string,
+    perpEngineAddress?: string
   ): Promise<AppPosition | null> {
     try {
       const pos = await this.positionsService.getPosition(
@@ -144,7 +165,7 @@ export class ContractSource {
         BigInt(positionId)
       )
 
-      return this.mapContractPositionToAppPosition(pos, marketId, marketSlug)
+      return this.mapContractPositionToAppPosition(pos, marketId, marketSlug, perpEngineAddress)
     } catch (error) {
       console.error('Error getting position:', error)
       return null
@@ -157,7 +178,8 @@ export class ContractSource {
   private mapContractPositionToAppPosition(
     contractPosition: ContractPosition,
     marketId: string,
-    marketSlug: string
+    marketSlug: string,
+    engineAddress?: string
   ): AppPosition {
     const entryPrice = Number(contractPosition.entryPrice) / 1e18
     const margin = Number(contractPosition.margin) / 1e18
@@ -174,6 +196,7 @@ export class ContractSource {
       userId: contractPosition.user,
       marketId,
       marketSlug,
+      engineAddress,
       positionType: contractPosition.isLong ? 'long' : 'short',
       entryPrice,
       baseSize: Number(contractPosition.baseSize) / 1e18,
@@ -313,18 +336,51 @@ export class ContractSource {
 
 
   /**
-   * Get user's wallet balance
+   * Get user's internal balance (raw bigint, 18 decimals)
+   */
+  async getUserBalanceRaw(
+    userAddress: string,
+    perpEngineAddress: string
+  ): Promise<bigint> {
+    return this.positionsService.getWalletBalance(
+      perpEngineAddress as Address,
+      userAddress as Address
+    )
+  }
+
+  /**
+   * Get user's wallet balance (formatted for display)
    */
   async getUserBalance(
     userAddress: string,
     perpEngineAddress: string
   ): Promise<number> {
-    const balance = await this.positionsService.getWalletBalance(
-      perpEngineAddress as Address,
+    const balance = await this.getUserBalanceRaw(userAddress, perpEngineAddress)
+    return Number(balance) / 1e18
+  }
+
+  /**
+   * Get user's available USDC balance in wallet (raw bigint, 6 decimals)
+   */
+  async getAvailableBalanceRaw(
+    userAddress: string,
+    usdcAddress: string
+  ): Promise<bigint> {
+    return this.positionsService.getUsdcBalance(
+      usdcAddress as Address,
       userAddress as Address
     )
+  }
 
-    return Number(balance) / 1e18
+  /**
+   * Get user's available USDC balance in wallet (formatted for display)
+   */
+  async getAvailableBalance(
+    userAddress: string,
+    usdcAddress: string
+  ): Promise<number> {
+    const balance = await this.getAvailableBalanceRaw(userAddress, usdcAddress)
+    return Number(balance) / 1e6
   }
 
   /**

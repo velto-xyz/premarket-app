@@ -87,7 +87,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <div className={isCollapsed ? "flex justify-center" : "px-2 py-1"}>
               <ConnectButton
-                showBalance={!isCollapsed}
+                showBalance={false}
                 chainStatus={isCollapsed ? "none" : "icon"}
                 accountStatus={isCollapsed ? "avatar" : "address"}
               />

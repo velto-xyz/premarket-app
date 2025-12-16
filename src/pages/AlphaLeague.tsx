@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrendingUp, BarChart3, Brain, Sparkles, Clock, ChevronRight } from "lucide-react";
@@ -22,11 +21,17 @@ export default function AlphaLeague() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("startups")
-        .select("*, industries(name)")
-        .order("price_change_24h", { ascending: false })
+        .select("id, name, slug, industries(name)")
+        .order("name")
         .limit(20);
       if (error) throw error;
-      return data;
+      // Add placeholder data - real prices/rankings come from contracts/views
+      return data?.map(s => ({
+        ...s,
+        current_price: 100 + Math.random() * 50,
+        price_change_24h: (Math.random() - 0.3) * 20,
+        market_cap: 1000000 + Math.random() * 5000000
+      })) || [];
     },
   });
 
@@ -47,7 +52,7 @@ export default function AlphaLeague() {
   // Animate the bar race
   useEffect(() => {
     if (startups.length === 0) return;
-    
+
     const interval = setInterval(() => {
       setScores(prev => {
         const newScores = { ...prev };
@@ -83,7 +88,7 @@ export default function AlphaLeague() {
       .map(startup => ({
         id: startup.id,
         ticker: getTicker(startup.slug),
-        
+
         name: startup.name,
         slug: startup.slug,
         score: scores[startup.id] || 75,
@@ -105,29 +110,25 @@ export default function AlphaLeague() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen p-6 space-y-8" style={{ backgroundColor: "#050505" }}>
+      <div className="min-h-screen p-6 space-y-8 bg-background">
         {/* Status Banner */}
-        <div className="rounded-xl p-4 flex items-center justify-between" style={{ 
-          background: "linear-gradient(135deg, rgba(0,240,255,0.1) 0%, rgba(255,77,0,0.1) 100%)",
-          border: "1px solid rgba(255,255,255,0.1)"
-        }}>
+        <div className="rounded-xl p-4 flex items-center justify-between bg-gradient-to-r from-primary/10 to-destructive/10 border border-border">
           <div className="flex items-center gap-4">
-            <Clock className="w-5 h-5" style={{ color: "#00F0FF" }} />
+            <Clock className="w-5 h-5 text-primary" />
             <div>
-              <p className="text-sm text-gray-400">Weekly Cycle Ends in:</p>
-              <p className="text-xl font-mono font-bold text-white">
+              <p className="text-sm text-muted-foreground">Weekly Cycle Ends in:</p>
+              <p className="text-xl font-mono font-bold text-foreground">
                 {String(countdown.days).padStart(2, '0')}d {String(countdown.hours).padStart(2, '0')}h {String(countdown.minutes).padStart(2, '0')}m {String(countdown.seconds).padStart(2, '0')}s
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <p className="text-sm text-gray-300">
-              Holders of Top 3 startups receive <span style={{ color: "#00F0FF" }} className="font-bold">+15% APY Boost</span> in $VELTO rewards
+            <p className="text-sm text-muted-foreground">
+              Holders of Top 3 startups receive <span className="text-primary font-bold">+15% APY Boost</span> in $VELTO rewards
             </p>
-            <Button 
+            <Button
               onClick={() => navigate("/markets")}
               className="rounded-lg font-semibold"
-              style={{ backgroundColor: "#00F0FF", color: "#050505" }}
             >
               Trade to Qualify <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -136,56 +137,45 @@ export default function AlphaLeague() {
 
         {/* Page Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-white tracking-tight" style={{ fontFamily: "Inter, sans-serif" }}>
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">
             Alpha League
           </h1>
-          <p className="text-gray-400 text-lg">Weekly startup competition for yield dominance</p>
+          <p className="text-muted-foreground text-lg">Weekly startup competition for yield dominance</p>
         </div>
 
         {/* Hero Section: Live Race */}
-        <Card className="border-0" style={{ 
-          backgroundColor: "rgba(255,255,255,0.03)", 
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.08)"
-        }}>
+        <Card className="glass border-border">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5" style={{ color: "#00F0FF" }} />
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
               Live Race — Real-Time Rankings
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {raceData.map((startup, index) => (
-              <div 
-                key={startup.id} 
+              <div
+                key={startup.id}
                 className="flex items-center gap-4 transition-all duration-700 ease-out"
-                style={{ 
-                  transform: `translateY(${index * 0}px)`,
-                }}
               >
-                <span className="text-2xl font-mono font-bold w-8" style={{ color: index === 0 ? "#00F0FF" : "#666" }}>
+                <span className={`text-2xl font-mono font-bold w-8 ${index === 0 ? "text-primary" : "text-muted-foreground"}`}>
                   #{index + 1}
                 </span>
-                <div 
-                  className="relative h-14 rounded-xl flex items-center gap-4 px-4 transition-all duration-700 ease-out"
-                  style={{ 
-                    width: `${startup.score}%`,
-                    background: index === 0 
-                      ? "linear-gradient(90deg, rgba(0,240,255,0.3) 0%, rgba(0,240,255,0.1) 100%)"
-                      : "linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%)",
-                    border: index === 0 ? "1px solid rgba(0,240,255,0.4)" : "1px solid rgba(255,255,255,0.1)",
-                    boxShadow: index === 0 ? "0 0 20px rgba(0,240,255,0.2)" : "none",
-                    animation: "pulse 2s ease-in-out infinite"
-                  }}
+                <div
+                  className={`relative h-14 rounded-xl flex items-center gap-4 px-4 transition-all duration-700 ease-out border ${
+                    index === 0
+                      ? "bg-primary/20 border-primary/40 shadow-[0_0_20px_hsl(var(--primary)/0.2)]"
+                      : "bg-muted/30 border-border"
+                  }`}
+                  style={{ width: `${startup.score}%` }}
                 >
-                  <img 
-                    src={getLogoUrl(startup.slug)} 
+                  <img
+                    src={getLogoUrl(startup.slug)}
                     alt={startup.name}
                     className="w-8 h-8 rounded-lg object-cover"
                   />
-                  <span className="font-mono font-bold text-white">{startup.ticker}</span>
-                  <span className="text-gray-400 text-sm">{startup.name}</span>
-                  <span className="ml-auto font-mono text-sm" style={{ color: "#00F0FF" }}>
+                  <span className="font-mono font-bold text-foreground">{startup.ticker}</span>
+                  <span className="text-muted-foreground text-sm">{startup.name}</span>
+                  <span className="ml-auto font-mono text-sm text-primary">
                     Score: {startup.score.toFixed(1)}
                   </span>
                 </div>
@@ -197,43 +187,37 @@ export default function AlphaLeague() {
         {/* The Three Competition Categories (Podium) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Top Gainer */}
-          <Card className="border-0 relative overflow-hidden" style={{ 
-            backgroundColor: "rgba(255,255,255,0.03)", 
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(34,197,94,0.2)"
-          }}>
-            <div className="absolute inset-0 opacity-20" style={{ 
-              background: "radial-gradient(circle at 50% 0%, #22C55E 0%, transparent 70%)"
-            }} />
+          <Card className="glass border-success/20 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20 bg-gradient-to-b from-success to-transparent" />
             <CardHeader className="relative">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: "rgba(34,197,94,0.2)" }}>
+                <div className="p-2 rounded-lg bg-success/20">
                   <TrendingUp className="w-5 h-5 text-success" />
                 </div>
-                <CardTitle className="text-gray-400 text-sm">Top Gainer</CardTitle>
+                <CardTitle className="text-muted-foreground text-sm">Top Gainer</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="relative space-y-4">
               {topGainer ? (
                 <>
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={getLogoUrl(topGainer.slug)} 
+                    <img
+                      src={getLogoUrl(topGainer.slug)}
                       alt={topGainer.name}
                       className="w-12 h-12 rounded-xl object-cover"
                     />
                     <div>
-                      <p className="font-mono font-bold text-white text-lg">{topGainer.ticker}</p>
-                      <p className="text-gray-400 text-sm">{topGainer.name}</p>
+                      <p className="font-mono font-bold text-foreground text-lg">{topGainer.ticker}</p>
+                      <p className="text-muted-foreground text-sm">{topGainer.name}</p>
                     </div>
                   </div>
                   <p className="text-4xl font-mono font-bold text-success">
                     +{topGainer.change.toFixed(1)}%
                   </p>
-                  <p className="text-xs text-gray-500">Price Performance</p>
+                  <p className="text-xs text-muted-foreground">Price Performance</p>
                   <Button
-                    variant="outline" 
-                    size="sm" 
+                    variant="outline"
+                    size="sm"
                     className="w-full border-0 bg-success/10 text-success hover:bg-success/20"
                     onClick={() => navigate("/markets")}
                   >
@@ -241,174 +225,157 @@ export default function AlphaLeague() {
                   </Button>
                 </>
               ) : (
-                <div className="text-gray-500 text-center py-4">Loading...</div>
+                <div className="text-muted-foreground text-center py-4">Loading...</div>
               )}
             </CardContent>
           </Card>
 
           {/* Most Liquid */}
-          <Card className="border-0 relative overflow-hidden" style={{ 
-            backgroundColor: "rgba(255,255,255,0.03)", 
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(59,130,246,0.2)"
-          }}>
-            <div className="absolute inset-0 opacity-20" style={{ 
-              background: "radial-gradient(circle at 50% 0%, #3B82F6 0%, transparent 70%)"
-            }} />
+          <Card className="glass border-blue-500/20 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20 bg-gradient-to-b from-blue-500 to-transparent" />
             <CardHeader className="relative">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: "rgba(59,130,246,0.2)" }}>
-                  <BarChart3 className="w-5 h-5 text-blue-400" />
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
                 </div>
-                <CardTitle className="text-gray-400 text-sm">Most Liquid</CardTitle>
+                <CardTitle className="text-muted-foreground text-sm">Most Liquid</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="relative space-y-4">
               {mostLiquid ? (
                 <>
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={getLogoUrl(mostLiquid.slug)} 
+                    <img
+                      src={getLogoUrl(mostLiquid.slug)}
                       alt={mostLiquid.name}
                       className="w-12 h-12 rounded-xl object-cover"
                     />
                     <div>
-                      <p className="font-mono font-bold text-white text-lg">{mostLiquid.ticker}</p>
-                      <p className="text-gray-400 text-sm">{mostLiquid.name}</p>
+                      <p className="font-mono font-bold text-foreground text-lg">{mostLiquid.ticker}</p>
+                      <p className="text-muted-foreground text-sm">{mostLiquid.name}</p>
                     </div>
                   </div>
-                  <p className="text-4xl font-mono font-bold text-blue-400">
+                  <p className="text-4xl font-mono font-bold text-blue-500">
                     ${mostLiquid.volume.toFixed(1)}M
                   </p>
-                  <p className="text-xs text-gray-500">Trading Volume</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full border-0"
-                    style={{ backgroundColor: "rgba(59,130,246,0.1)", color: "#3B82F6" }}
+                  <p className="text-xs text-muted-foreground">Trading Volume</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-0 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
                     onClick={() => navigate("/markets")}
                   >
                     Trade to Qualify
                   </Button>
                 </>
               ) : (
-                <div className="text-gray-500 text-center py-4">Loading...</div>
+                <div className="text-muted-foreground text-center py-4">Loading...</div>
               )}
             </CardContent>
           </Card>
 
           {/* Highest AI Sentiment */}
-          <Card className="border-0 relative overflow-hidden" style={{ 
-            backgroundColor: "rgba(255,255,255,0.03)", 
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(168,85,247,0.2)"
-          }}>
-            <div className="absolute inset-0 opacity-20" style={{ 
-              background: "radial-gradient(circle at 50% 0%, #A855F7 0%, transparent 70%)"
-            }} />
+          <Card className="glass border-purple-500/20 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20 bg-gradient-to-b from-purple-500 to-transparent" />
             <CardHeader className="relative">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: "rgba(168,85,247,0.2)" }}>
-                  <Brain className="w-5 h-5 text-purple-400" />
+                <div className="p-2 rounded-lg bg-purple-500/20">
+                  <Brain className="w-5 h-5 text-purple-500" />
                 </div>
-                <CardTitle className="text-gray-400 text-sm">Highest AI Sentiment</CardTitle>
+                <CardTitle className="text-muted-foreground text-sm">Highest AI Sentiment</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="relative space-y-4">
               {highestSentiment ? (
                 <>
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={getLogoUrl(highestSentiment.slug)} 
+                    <img
+                      src={getLogoUrl(highestSentiment.slug)}
                       alt={highestSentiment.name}
                       className="w-12 h-12 rounded-xl object-cover"
                     />
                     <div>
-                      <p className="font-mono font-bold text-white text-lg">{highestSentiment.ticker}</p>
-                      <p className="text-gray-400 text-sm">{highestSentiment.name}</p>
+                      <p className="font-mono font-bold text-foreground text-lg">{highestSentiment.ticker}</p>
+                      <p className="text-muted-foreground text-sm">{highestSentiment.name}</p>
                     </div>
                   </div>
-                  <p className="text-4xl font-mono font-bold text-purple-400">
+                  <p className="text-4xl font-mono font-bold text-purple-500">
                     {highestSentiment.sentiment}/100
                   </p>
-                  <p className="text-xs text-gray-500">Bullish Score</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full border-0"
-                    style={{ backgroundColor: "rgba(168,85,247,0.1)", color: "#A855F7" }}
+                  <p className="text-xs text-muted-foreground">Bullish Score</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-0 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20"
                     onClick={() => navigate("/markets")}
                   >
                     Trade to Qualify
                   </Button>
                 </>
               ) : (
-                <div className="text-gray-500 text-center py-4">Loading...</div>
+                <div className="text-muted-foreground text-center py-4">Loading...</div>
               )}
             </CardContent>
           </Card>
         </div>
 
         {/* Full Rankings Table */}
-        <Card className="border-0" style={{ 
-          backgroundColor: "rgba(255,255,255,0.03)", 
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.08)"
-        }}>
+        <Card className="glass border-border">
           <CardHeader>
-            <CardTitle className="text-white">Full Rankings</CardTitle>
+            <CardTitle className="text-foreground">Full Rankings</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-white/10 hover:bg-transparent">
-                  <TableHead className="text-gray-400 font-mono">Rank</TableHead>
-                  <TableHead className="text-gray-400">Asset Name</TableHead>
-                  <TableHead className="text-gray-400 text-right font-mono">Current Price</TableHead>
-                  <TableHead className="text-gray-400 text-right font-mono">7d Change</TableHead>
-                  <TableHead className="text-gray-400 text-right font-mono">Sentiment</TableHead>
-                  <TableHead className="text-gray-400 text-right font-mono">Est. Yield Boost</TableHead>
+                <TableRow className="border-b border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-mono">Rank</TableHead>
+                  <TableHead className="text-muted-foreground">Asset Name</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">Current Price</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">7d Change</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">Sentiment</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">Est. Yield Boost</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {startups?.map((startup, index) => {
                   const yieldBoost = index < 3 ? "+15%" : index < 5 ? "+8%" : index < 10 ? "+3%" : "—";
-                  const yieldColor = index < 3 ? "#00F0FF" : index < 5 ? "#3B82F6" : index < 10 ? "#A855F7" : "#666";
                   const sentimentScore = Math.floor(60 + Math.random() * 35);
                   const priceChange = startup.price_change_24h || 0;
-                  
+
                   return (
-                    <TableRow 
-                      key={startup.id} 
-                      className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors group"
+                    <TableRow
+                      key={startup.id}
+                      className="border-b border-border/50 hover:bg-muted/50 cursor-pointer transition-colors group"
                       onClick={() => navigate(`/startup/${startup.slug}`)}
                     >
-                      <TableCell className="font-mono font-bold" style={{ color: index < 3 ? "#00F0FF" : "#888" }}>
+                      <TableCell className={`font-mono font-bold ${index < 3 ? "text-primary" : "text-muted-foreground"}`}>
                         #{index + 1}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <img 
+                          <img
                             src={startupLogos[startup.slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"]}
                             alt={startup.name}
                             className="w-8 h-8 rounded-lg object-cover"
                           />
                           <div>
-                            <p className="text-white font-medium group-hover:text-[#00F0FF] transition-colors">{startup.name}</p>
-                            <p className="text-gray-500 text-xs">{startup.industries?.name}</p>
+                            <p className="text-foreground font-medium group-hover:text-primary transition-colors">{startup.name}</p>
+                            <p className="text-muted-foreground text-xs">{startup.industries?.name}</p>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-mono text-white">
+                      <TableCell className="text-right font-mono text-foreground">
                         ${startup.current_price.toFixed(2)}
                       </TableCell>
                       <TableCell className={`text-right font-mono ${priceChange >= 0 ? "text-success" : "text-destructive"}`}>
                         {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(1)}%
                       </TableCell>
-                      <TableCell className="text-right font-mono text-gray-300">
+                      <TableCell className="text-right font-mono text-muted-foreground">
                         {sentimentScore}/100
                       </TableCell>
-                      <TableCell className="text-right font-mono font-bold" style={{ color: yieldColor }}>
+                      <TableCell className={`text-right font-mono font-bold ${
+                        index < 3 ? "text-primary" : index < 5 ? "text-blue-500" : index < 10 ? "text-purple-500" : "text-muted-foreground"
+                      }`}>
                         {yieldBoost}
                       </TableCell>
                     </TableRow>

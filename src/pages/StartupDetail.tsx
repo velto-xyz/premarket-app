@@ -10,13 +10,19 @@ import TradingPanel from "@/components/trading/TradingPanel";
 import PositionsPanel from "@/components/trading/PositionsPanel";
 import LiquidationMonitor from "@/components/trading/LiquidationMonitor";
 import NewsTicker from "@/components/NewsTicker";
-import Unicorn3D from "@/components/Unicorn3D";
 import { startupLogos } from "@/assets/logos";
 import { getTicker } from "@/lib/tickers";
 import { formatUSD, formatCompact } from "@/lib/format";
+import { SupabaseSource } from "@/lib/storage/sources/SupabaseSource";
+import { useSync } from "@/hooks/useSync";
+
+const supabaseSource = new SupabaseSource();
 
 export default function StartupDetail() {
   const { startupSlug } = useParams();
+
+  // Sync data from indexer on page load
+  useSync();
 
   const { data: market, isLoading } = useQuery({
     queryKey: ["market", startupSlug],
@@ -24,6 +30,7 @@ export default function StartupDetail() {
       if (!startupSlug) return null;
       return await storage.getMarket(startupSlug);
     },
+    refetchInterval: 5000, // Refresh price every 5 seconds
   });
 
   // Get industry info (temporary - until we add to storage layer)
@@ -42,6 +49,20 @@ export default function StartupDetail() {
     enabled: !!market?.industryId,
   });
 
+  // Get 24h price change from Supabase
+  const { data: priceChange24h = 0 } = useQuery({
+    queryKey: ["priceChange24h", startupSlug],
+    queryFn: async () => {
+      if (!startupSlug) return 0;
+      const contractInfo = await supabaseSource.getMarketContractInfoBySlug(startupSlug);
+      if (!contractInfo?.perpEngineAddress) return 0;
+      const stats = await supabaseSource.getMarketStats24h(contractInfo.perpEngineAddress);
+      return stats?.change24h || 0;
+    },
+    enabled: !!startupSlug,
+    staleTime: 60000, // 1 minute
+  });
+
   // Transform to match component expectations
   const startup = market ? {
     id: market.id,
@@ -54,7 +75,7 @@ export default function StartupDetail() {
     hq_latitude: market.hqLatitude,
     hq_longitude: market.hqLongitude,
     current_price: market.currentPrice,
-    price_change_24h: market.priceChange24h,
+    price_change_24h: priceChange24h,
     market_cap: market.quoteReserve,  // quoteReserve is the market cap in vAMM model
     unicorn_color: market.unicornColor,
     year_founded: market.yearFounded,
@@ -174,33 +195,12 @@ export default function StartupDetail() {
               </CardHeader>
               <CardContent>
                 <PriceChart
+                  marketSlug={startup.slug}
                   startupName={startup.name}
                   currentPrice={startup.current_price}
                   priceChange24h={startup.price_change_24h || 0}
                   color={startup.unicorn_color || '#8B5CF6'}
                 />
-              </CardContent>
-            </Card>
-
-            {/* Unicorn Visualization - 3D Interactive */}
-            <Card className="glass border-border overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-mono">
-                  {getTicker(startup.slug)} Unicorn
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="w-full h-[400px]">
-                  <Unicorn3D
-                    color={startup.unicorn_color || '#8B5CF6'}
-                    companyName={startup.name}
-                  />
-                </div>
-                <div className="px-6 py-4 border-t border-border">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Interactive 3D visualization. You're betting on this future Unicorn!
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>

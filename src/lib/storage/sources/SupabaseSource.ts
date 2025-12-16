@@ -1,35 +1,56 @@
 import { supabase } from '@/integrations/supabase/client'
-import type { MarketMetadata, MarketContractInfo } from '@/types/models'
+import type {
+  MarketMetadata,
+  MarketContractInfo,
+  PricePoint,
+  CandlestickData,
+  Trade
+} from '@/types/models'
+
+export interface WalletPortfolio {
+  walletAddress: string
+  openPositions: number
+  totalMargin: number
+  realizedPnl: number
+}
+
+export interface MarketStats24h {
+  engine: string
+  high24h: number
+  low24h: number
+  volume24h: number
+  change24h: number
+}
+
+export interface PeriodStats {
+  high: number
+  low: number
+  volume: number
+  changePct: number
+}
 
 /**
  * Supabase Source
  *
- * Handles fetching market metadata and contract information from Supabase
+ * Handles all database queries. Primary data source for:
+ * - Market metadata
+ * - Historical trades/positions (from indexer)
+ * - OHLCV data (materialized views)
+ * - Portfolio/stats
  */
 export class SupabaseSource {
-  /**
-   * Get market metadata (company info, logo, etc.)
-   * Source: startups table
-   */
+  // ============================================================================
+  // MARKET METADATA
+  // ============================================================================
+
   async getMarketMetadata(slug: string): Promise<MarketMetadata | null> {
     const { data, error } = await supabase
       .from('startups')
-      .select(
-        `
-        id,
-        name,
-        slug,
-        description,
-        logo_url,
-        industry_id,
-        hq_location,
-        hq_latitude,
-        hq_longitude,
-        unicorn_color,
-        year_founded,
-        founders
-      `
-      )
+      .select(`
+        id, name, slug, description, logo_url, industry_id,
+        hq_location, hq_latitude, hq_longitude, unicorn_color,
+        year_founded, founders
+      `)
       .eq('slug', slug)
       .single()
 
@@ -54,28 +75,14 @@ export class SupabaseSource {
     }
   }
 
-  /**
-   * Get all markets metadata
-   */
   async getAllMarketsMetadata(): Promise<MarketMetadata[]> {
     const { data, error } = await supabase
       .from('startups')
-      .select(
-        `
-        id,
-        name,
-        slug,
-        description,
-        logo_url,
-        industry_id,
-        hq_location,
-        hq_latitude,
-        hq_longitude,
-        unicorn_color,
-        year_founded,
-        founders
-      `
-      )
+      .select(`
+        id, name, slug, description, logo_url, industry_id,
+        hq_location, hq_latitude, hq_longitude, unicorn_color,
+        year_founded, founders
+      `)
       .order('name')
 
     if (error || !data) {
@@ -99,37 +106,21 @@ export class SupabaseSource {
     }))
   }
 
-  /**
-   * Get markets by industry
-   */
   async getMarketsByIndustry(industrySlug: string): Promise<MarketMetadata[]> {
-    // First get industry ID
     const { data: industry } = await supabase
       .from('industries')
       .select('id')
       .eq('slug', industrySlug)
       .single()
 
-    if (!industry) {
-      return []
-    }
+    if (!industry) return []
 
     const { data, error } = await supabase
       .from('startups')
-      .select(
-        `
-        id,
-        name,
-        slug,
-        description,
-        logo_url,
-        industry_id,
-        hq_location,
-        hq_latitude,
-        hq_longitude,
-        unicorn_color
-      `
-      )
+      .select(`
+        id, name, slug, description, logo_url, industry_id,
+        hq_location, hq_latitude, hq_longitude, unicorn_color
+      `)
       .eq('industry_id', industry.id)
       .order('name')
 
@@ -152,37 +143,26 @@ export class SupabaseSource {
     }))
   }
 
-  /**
-   * Get contract information for a market
-   * Source: market_contracts table
-   */
-  async getMarketContractInfo(
-    marketId: string
-  ): Promise<MarketContractInfo | null> {
+  // ============================================================================
+  // CONTRACT INFO
+  // ============================================================================
+
+  async getMarketContractInfo(marketId: string): Promise<MarketContractInfo | null> {
     const { data, error } = await supabase
       .from('market_contracts')
-      .select(
-        `
-        startup_id,
-        perp_engine_address,
-        perp_market_address,
-        position_manager_address,
-        chain_id,
-        deployment_block
-      `
-      )
+      .select(`
+        startup_id, perp_engine_address, perp_market_address,
+        position_manager_address, chain_id, deployment_block
+      `)
       .eq('startup_id', marketId)
       .eq('is_active', true)
       .single()
 
-    if (error || !data) {
-      // Market doesn't have contracts deployed yet
-      return null
-    }
+    if (error || !data) return null
 
     return {
       marketId: data.startup_id,
-      contractAddress: data.perp_engine_address, // Using engine as main contract
+      contractAddress: data.perp_engine_address,
       perpEngineAddress: data.perp_engine_address,
       perpMarketAddress: data.perp_market_address,
       positionManagerAddress: data.position_manager_address,
@@ -191,23 +171,12 @@ export class SupabaseSource {
     }
   }
 
-  /**
-   * Get contract info by slug (convenience method)
-   */
-  async getMarketContractInfoBySlug(
-    slug: string
-  ): Promise<MarketContractInfo | null> {
+  async getMarketContractInfoBySlug(slug: string): Promise<MarketContractInfo | null> {
     const metadata = await this.getMarketMetadata(slug)
-    if (!metadata) {
-      return null
-    }
-
+    if (!metadata) return null
     return this.getMarketContractInfo(metadata.id)
   }
 
-  /**
-   * Get all markets with contract info using view
-   */
   async getAllMarketsWithContracts() {
     const { data, error } = await supabase
       .from('markets_with_contracts')
@@ -222,21 +191,267 @@ export class SupabaseSource {
     return data || []
   }
 
-  /**
-   * Legacy: Get positions from old user_positions table
-   * Used as fallback before indexer is ready
-   */
-  async getLegacyPositions(userAddress: string) {
-    const { data, error } = await supabase
-      .from('user_positions')
-      .select('*')
-      .eq('user_id', userAddress)
+  // ============================================================================
+  // WALLET/USER MANAGEMENT
+  // ============================================================================
+
+  async linkWalletToUser(walletAddress: string, userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('wallets')
+      .upsert({
+        address: walletAddress,
+        user_id: userId
+      })
 
     if (error) {
-      console.error('Error fetching legacy positions:', error)
-      return []
+      console.error('Error linking wallet to user:', error)
+      return false
+    }
+    return true
+  }
+
+  async getWalletsByUser(userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('wallets')
+      .select('address')
+      .eq('user_id', userId)
+
+    if (error || !data) return []
+    return data.map(w => w.address)
+  }
+
+  // ============================================================================
+  // PORTFOLIO QUERIES
+  // ============================================================================
+
+  async getWalletPortfolio(walletAddress: string): Promise<WalletPortfolio | null> {
+    const { data, error } = await supabase
+      .from('wallet_portfolio')
+      .select('*')
+      .eq('wallet_address', walletAddress.toLowerCase())
+      .single()
+
+    if (error || !data) return null
+
+    return {
+      walletAddress: data.wallet_address,
+      openPositions: data.open_positions || 0,
+      totalMargin: Number(data.total_margin) || 0,
+      realizedPnl: Number(data.realized_pnl) || 0
+    }
+  }
+
+  async getWalletActivity(walletAddress: string, limit = 50): Promise<Trade[]> {
+    const { data, error } = await supabase
+      .from('trades')
+      .select('*')
+      .eq('user_address', walletAddress.toLowerCase())
+      .order('timestamp', { ascending: false })
+      .limit(limit)
+
+    console.log("[SupabaseSource] trades query result:", { data, error });
+    if (error || !data) return []
+
+    return data.map(t => ({
+      id: t.id,
+      positionId: t.position_id,
+      userId: t.user_address,
+      marketSlug: '', // Would need to resolve from engine
+      type: t.event_type as 'open' | 'close' | 'liquidation',
+      side: t.is_long ? 'long' : 'short',
+      price: Number(t.price),
+      size: Number(t.base_size),
+      notional: Number(t.notional),
+      fee: 0,
+      pnl: t.pnl ? Number(t.pnl) : undefined,
+      timestamp: new Date(t.timestamp),
+      blockNumber: Number(t.block_number),
+      txHash: t.tx_hash
+    }))
+  }
+
+  // ============================================================================
+  // MARKET RANKINGS
+  // ============================================================================
+
+  async getMarketRankings(): Promise<Array<{ engine: string; totalChange: number }>> {
+    const { data, error } = await supabase
+      .from('market_rankings')
+      .select('engine, total_change')
+
+    if (error || !data) return []
+
+    return data.map(r => ({
+      engine: r.engine,
+      totalChange: Number(r.total_change)
+    }))
+  }
+
+  // ============================================================================
+  // MARKET STATS
+  // ============================================================================
+
+  async getMarketStats24h(engine: string): Promise<MarketStats24h | null> {
+    const { data, error } = await supabase
+      .from('market_stats_24h')
+      .select('*')
+      .eq('engine', engine)
+      .single()
+
+    if (error || !data) return null
+
+    return {
+      engine: data.engine,
+      high24h: Number(data.high_24h) || 0,
+      low24h: Number(data.low_24h) || 0,
+      volume24h: Number(data.volume_24h) || 0,
+      change24h: Number(data.change_24h) || 0
+    }
+  }
+
+  async getPeriodStats(engine: string, interval: 'D' | 'W' | 'M' | '3M' | 'Y' | 'ALL'): Promise<PeriodStats | null> {
+    const { data, error } = await supabase
+      .rpc('get_period_stats', {
+        p_engine: engine,
+        p_interval: interval
+      })
+
+    if (error || !data || data.length === 0) return null
+
+    const row = data[0]
+    return {
+      high: Number(row.high) || 0,
+      low: Number(row.low) || 0,
+      volume: Number(row.volume) || 0,
+      changePct: Number(row.change_pct) || 0
+    }
+  }
+
+  // ============================================================================
+  // OHLCV / CHART DATA
+  // ============================================================================
+
+  async getOHLCV(
+    engine: string,
+    interval: '5m' | '1h' | '1d',
+    since?: Date
+  ): Promise<CandlestickData[]> {
+    const table = interval === '5m' ? 'ohlcv_5min' : interval === '1h' ? 'hourly_ohlcv' : 'daily_stats'
+    const sinceTime = since || new Date(0)
+
+    const { data, error } = await supabase
+      .from(table)
+      .select('bucket, open, high, low, close, volume')
+      .eq('engine', engine)
+      .gte('bucket', sinceTime.toISOString())
+      .order('bucket', { ascending: true })
+
+    if (error || !data) return []
+
+    return data.map(row => ({
+      timestamp: new Date(row.bucket),
+      open: Number(row.open) || 0,
+      high: Number(row.high) || 0,
+      low: Number(row.low) || 0,
+      close: Number(row.close) || 0,
+      volume: Number(row.volume) || 0
+    }))
+  }
+
+  async get7dTrend(engine: string): Promise<PricePoint[]> {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+    const { data, error } = await supabase
+      .from('hourly_ohlcv')
+      .select('bucket, close')
+      .eq('engine', engine)
+      .gte('bucket', since.toISOString())
+      .order('bucket', { ascending: true })
+
+    if (error || !data || data.length === 0) return []
+
+    const points: PricePoint[] = data.map(row => ({
+      timestamp: new Date(row.bucket),
+      price: Number(row.close) || 0
+    }))
+
+    // Backfill initial price at 7d start if first point is after that
+    if (points.length > 0 && points[0].timestamp > since) {
+      points.unshift({
+        timestamp: since,
+        price: points[0].price
+      })
     }
 
-    return data || []
+    return points
+  }
+
+  // ============================================================================
+  // POSITION QUERIES
+  // ============================================================================
+
+  async getOpenPositionIds(walletAddress: string, engine?: string): Promise<string[]> {
+    let query = supabase
+      .from('positions')
+      .select('id')
+      .eq('user_address', walletAddress.toLowerCase())
+      .eq('status', 'open')
+
+    if (engine) {
+      query = query.eq('engine', engine)
+    }
+
+    const { data, error } = await query
+
+    if (error || !data) return []
+    return data.map(p => p.id.toString())
+  }
+
+  // ============================================================================
+  // PRICE HISTORY (for charts)
+  // ============================================================================
+
+  async getPriceHistory(marketSlug: string, since?: Date): Promise<PricePoint[]> {
+    // Get engine address from market slug
+    const contractInfo = await this.getMarketContractInfoBySlug(marketSlug)
+    if (!contractInfo) return []
+
+    return this.getPriceHistoryByEngine(contractInfo.perpEngineAddress, since)
+  }
+
+  async getPriceHistoryByEngine(engine: string, since?: Date): Promise<PricePoint[]> {
+    const sinceTime = since || new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+    const { data, error } = await supabase
+      .from('hourly_ohlcv')
+      .select('bucket, close')
+      .eq('engine', engine)
+      .gte('bucket', sinceTime.toISOString())
+      .order('bucket', { ascending: true })
+
+    if (error || !data) return []
+
+    return data.map(row => ({
+      timestamp: new Date(row.bucket),
+      price: Number(row.close) || 0
+    }))
+  }
+
+  // ============================================================================
+  // 24H STATS (convenience method using view)
+  // ============================================================================
+
+  async get24hStats(marketSlug: string): Promise<{ high: number; low: number; volume: number }> {
+    const contractInfo = await this.getMarketContractInfoBySlug(marketSlug)
+    if (!contractInfo) return { high: 0, low: 0, volume: 0 }
+
+    const stats = await this.getMarketStats24h(contractInfo.perpEngineAddress)
+    if (!stats) return { high: 0, low: 0, volume: 0 }
+
+    return {
+      high: stats.high24h,
+      low: stats.low24h,
+      volume: stats.volume24h
+    }
   }
 }

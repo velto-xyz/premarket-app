@@ -19,13 +19,6 @@ export default function PositionsPanel({
 }: PositionsPanelProps) {
   const { positions, isLoading, closePosition } = usePositions(startupSlug);
 
-  console.log('[PositionsPanel] Render:', {
-    startupSlug,
-    isLoading,
-    positionsCount: positions?.length || 0,
-    positions
-  })
-
   if (isLoading) {
     return (
       <Card className="glass border-border">
@@ -96,10 +89,10 @@ export default function PositionsPanel({
                   )}
                   <div>
                     <div className="font-semibold">
-                      {isLong ? "Long" : "Short"} {position.leverage}x
+                      {isLong ? "Long" : "Short"} {Math.round(position.leverage)}x
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {position.quantity} shares
+                      {position.quantity.toFixed(4)} shares
                     </div>
                   </div>
                 </div>

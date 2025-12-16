@@ -3,5 +3,5 @@ project_id = "avpcdmphzpessnpfewhv"
 [functions.liquidation-engine]
 verify_jwt = false
 
-[functions.price-simulator]
+[functions.sync-data]
 verify_jwt = false

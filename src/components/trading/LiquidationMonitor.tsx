@@ -5,82 +5,29 @@ import { AlertTriangle, Activity, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePositions, checkLiquidationRisk } from "@/hooks/usePositions";
 
-interface PriceUpdate {
-  id: string;
-  current_price: number;
-  name: string;
-}
-
 export default function LiquidationMonitor() {
   const { positions } = usePositions();
-  const [priceUpdates, setPriceUpdates] = useState<Map<string, number>>(new Map());
   const [liquidationAlerts, setLiquidationAlerts] = useState<Array<{
     startupName: string;
     risk: string;
     distance: number;
   }>>([]);
 
-  // Subscribe to real-time price updates
-  useEffect(() => {
-    const channel = supabase
-      .channel("price-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "startups",
-        },
-        (payload) => {
-          const update = payload.new as PriceUpdate;
-          setPriceUpdates((prev) => new Map(prev).set(update.id, update.current_price));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Subscribe to position changes (liquidations)
-  useEffect(() => {
-    const channel = supabase
-      .channel("position-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "user_positions",
-        },
-        (payload) => {
-          const position = payload.new;
-          if (position.status === "liquidated") {
-            console.log("🔔 Position liquidated:", position);
-            // Could trigger a toast notification here
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Calculate liquidation alerts
+  // Check liquidation risk for positions
+  // Note: In new architecture, prices come from contracts, not Supabase
+  // This component uses entry price as baseline - real-time price updates
+  // would need to come from contract polling in the parent component
   useEffect(() => {
     if (!positions || positions.length === 0) {
       setLiquidationAlerts([]);
       return;
     }
 
-    const fetchStartupPrices = async () => {
+    const fetchStartupNames = async () => {
       const startupIds = positions.map((p) => p.startup_id);
       const { data: startups } = await supabase
         .from("startups")
-        .select("id, name, current_price")
+        .select("id, name")
         .in("id", startupIds);
 
       if (!startups) return;
@@ -91,7 +38,9 @@ export default function LiquidationMonitor() {
         const startup = startups.find((s) => s.id === position.startup_id);
         if (!startup) return;
 
-        const currentPrice = priceUpdates.get(startup.id) || startup.current_price;
+        // Use entry price as current price for now
+        // Real-time price would need to be passed from parent via contract polling
+        const currentPrice = position.entry_price;
         const { risk, distance } = checkLiquidationRisk(position, currentPrice);
 
         if (risk === "high" || risk === "medium") {
@@ -106,87 +55,58 @@ export default function LiquidationMonitor() {
       setLiquidationAlerts(alerts);
     };
 
-    fetchStartupPrices();
-  }, [positions, priceUpdates]);
+    fetchStartupNames();
+  }, [positions]);
 
-  if (!positions || positions.length === 0) {
-    return null;
+  if (liquidationAlerts.length === 0) {
+    return (
+      <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2 text-success">
+            <Shield className="h-4 w-4" />
+            Positions Safe
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">
+            No positions at risk of liquidation
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const highRiskCount = liquidationAlerts.filter((a) => a.risk === "high").length;
-  const mediumRiskCount = liquidationAlerts.filter((a) => a.risk === "medium").length;
-
   return (
-    <Card className="glass border-border">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-primary" />
-            Liquidation Monitor
-          </span>
-          <Badge variant={highRiskCount > 0 ? "destructive" : "outline"}>
-            {positions.length} Active
-          </Badge>
+    <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2 text-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          Liquidation Alerts
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Overall Status */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
-            <div className="text-2xl font-bold text-destructive">{highRiskCount}</div>
-            <div className="text-xs text-muted-foreground mt-1">High Risk</div>
-          </div>
-          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-center">
-            <div className="text-2xl font-bold text-yellow-500">{mediumRiskCount}</div>
-            <div className="text-xs text-muted-foreground mt-1">Medium Risk</div>
-          </div>
-          <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-center">
-            <div className="text-2xl font-bold text-success">
-              {positions.length - highRiskCount - mediumRiskCount}
+      <CardContent className="space-y-2">
+        {liquidationAlerts.map((alert, index) => (
+          <div
+            key={index}
+            className="flex items-center justify-between text-xs"
+          >
+            <div className="flex items-center gap-2">
+              <Activity className="h-3 w-3 text-muted-foreground" />
+              <span>{alert.startupName}</span>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Safe</div>
-          </div>
-        </div>
-
-        {/* Alerts */}
-        {liquidationAlerts.length > 0 ? (
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-muted-foreground">Active Alerts</div>
-            {liquidationAlerts.map((alert, idx) => (
-              <div
-                key={idx}
-                className={`p-3 rounded-lg border flex items-start gap-2 ${
-                  alert.risk === "high"
-                    ? "bg-destructive/10 border-destructive/20"
-                    : "bg-yellow-500/10 border-yellow-500/20"
-                }`}
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={alert.risk === "high" ? "destructive" : "secondary"}
+                className="text-[10px] px-1.5"
               >
-                <AlertTriangle
-                  className={`w-4 h-4 mt-0.5 ${
-                    alert.risk === "high" ? "text-destructive" : "text-yellow-500"
-                  }`}
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{alert.startupName}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {alert.distance.toFixed(1)}% from liquidation
-                  </div>
-                </div>
-              </div>
-            ))}
+                {alert.risk === "high" ? "HIGH RISK" : "MEDIUM"}
+              </Badge>
+              <span className="text-muted-foreground">
+                {alert.distance.toFixed(1)}% to liq
+              </span>
+            </div>
           </div>
-        ) : (
-          <div className="flex items-center justify-center gap-2 p-4 text-success">
-            <Shield className="w-5 h-5" />
-            <span className="text-sm font-medium">All positions are safe</span>
-          </div>
-        )}
-
-        {/* Live Price Updates Indicator */}
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
-          <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-          <span>Real-time monitoring active</span>
-        </div>
+        ))}
       </CardContent>
     </Card>
   );

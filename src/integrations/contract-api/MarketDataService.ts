@@ -116,6 +116,40 @@ export class MarketDataService {
   }
 
   /**
+   * Simulate opening a position to get estimated entry price with slippage
+   */
+  async simulateOpenPosition(
+    marketAddress: Address,
+    isLong: boolean,
+    notional: bigint
+  ): Promise<{ baseSize: bigint; avgPrice: bigint }> {
+    try {
+      if (isLong) {
+        // simulateOpenLong(quoteIn) -> (baseOut, avgPrice)
+        const result = await this.publicClient.readContract({
+          address: marketAddress,
+          abi: perpMarketAbi,
+          functionName: 'simulateOpenLong',
+          args: [notional]
+        }) as [bigint, bigint]
+        return { baseSize: result[0], avgPrice: result[1] }
+      } else {
+        // simulateOpenShort(quoteOut) -> (baseIn, avgPrice)
+        const result = await this.publicClient.readContract({
+          address: marketAddress,
+          abi: perpMarketAbi,
+          functionName: 'simulateOpenShort',
+          args: [notional]
+        }) as [bigint, bigint]
+        return { baseSize: result[0], avgPrice: result[1] }
+      }
+    } catch (error) {
+      console.error(`[MarketDataService] simulateOpenPosition failed:`, error)
+      throw error
+    }
+  }
+
+  /**
    * Get market deployment info for indexing
    */
   async getMarketInfo(engineAddress: Address): Promise<{

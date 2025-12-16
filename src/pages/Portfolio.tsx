@@ -3,92 +3,149 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Activity, DollarSign, Percent, Building, Trophy, Wallet, ArrowDownToLine } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { ChevronDown, ChevronUp, TrendingUp, DollarSign, Building, Wallet, ArrowDownToLine, Activity, ArrowUpRight, ArrowDownRight, Zap } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { startupLogos } from "@/assets/logos";
-import unicornPodiumVideo from "@/assets/unicorn-podium.mp4";
 import { getTicker } from "@/lib/tickers";
 import PortfolioNewsTicker from "@/components/PortfolioNewsTicker";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
-// Mock data for demonstration
-const portfolioData = {
-  totalValue: 128430,
-  totalPnL: 12340,
-  performanceDelta: 9.8,
-  numStartups: 12,
-  sparklineData: Array.from({ length: 30 }, (_, i) => ({
-    day: i + 1,
-    value: 100 + Math.random() * 15 - 5
-  }))
-};
-
-const topStartups = [
-  {
-    id: 1,
-    name: "NebulaDrive Spaceworks",
-    value: 32100,
-    performance: 23.4,
-    color: "#8B5CF6",
-    industry: "Space"
-  },
-  {
-    id: 2,
-    name: "QuantumLoop Finance",
-    value: 28500,
-    performance: 18.7,
-    color: "#F4C85E",
-    industry: "FinTech"
-  },
-  {
-    id: 3,
-    name: "HelixDrive Therapeutics",
-    value: 24200,
-    performance: 15.2,
-    color: "#5CD88F",
-    industry: "Biotech"
-  }
-];
-
-const holdings = [
-  { id: 1, name: "NebulaDrive Spaceworks", slug: "nebuladrive-spaceworks", industry: "Space", shares: 1250, value: 32100, avgEntry: 24.50, currentPrice: 25.68, pnl: 23.4, color: "#8B5CF6" },
-  { id: 2, name: "QuantumLoop Finance", slug: "quantumloop-finance", industry: "FinTech", shares: 980, value: 28500, avgEntry: 27.80, currentPrice: 29.08, pnl: 18.7, color: "#F4C85E" },
-  { id: 3, name: "HelixDrive Therapeutics", slug: "helixdrive-therapeutics", industry: "Biotech", shares: 1500, value: 24200, avgEntry: 15.20, currentPrice: 16.13, pnl: 15.2, color: "#5CD88F" },
-  { id: 4, name: "SynapseHive Robotics", slug: "synapsehive-robotics", industry: "Robotics", shares: 800, value: 18600, avgEntry: 22.10, currentPrice: 23.25, pnl: 8.3, color: "#FF6B9D" },
-  { id: 5, name: "FinoraChain", slug: "finorachain", industry: "FinTech", shares: 2100, value: 15400, avgEntry: 7.50, currentPrice: 7.33, pnl: -2.3, color: "#FFB84D" },
-  { id: 6, name: "AeroPulse Mobility", slug: "aeropulse-mobility", industry: "Automotive", shares: 600, value: 9630, avgEntry: 15.80, currentPrice: 16.05, pnl: 1.6, color: "#4ECDC4" },
-];
-
-const activities = [
-  { id: 1, date: "2025-01-28 14:32", startup: "NebulaDrive Spaceworks", slug: "nebuladrive-spaceworks", action: "Buy", quantity: 250, price: 25.68, total: 6420, color: "#8B5CF6" },
-  { id: 2, date: "2025-01-27 11:15", startup: "QuantumLoop Finance", slug: "quantumloop-finance", action: "Sell", quantity: 120, price: 29.08, total: 3490, color: "#F4C85E" },
-  { id: 3, date: "2025-01-26 09:45", startup: "HelixDrive Therapeutics", slug: "helixdrive-therapeutics", action: "Buy", quantity: 300, price: 16.13, total: 4839, color: "#5CD88F" },
-  { id: 4, date: "2025-01-25 16:20", startup: "SynapseHive Robotics", slug: "synapsehive-robotics", action: "Buy", quantity: 150, price: 23.25, total: 3488, color: "#FF6B9D" },
-  { id: 5, date: "2025-01-24 13:10", startup: "FinoraChain", slug: "finorachain", action: "Dividend", quantity: 0, price: 0, total: 125, color: "#FFB84D" },
-];
+import { StorageLayer } from "@/lib/storage";
+import { useQuery } from "@tanstack/react-query";
+import { formatUSD } from "@/lib/format";
+import Sparkline from "@/components/Sparkline";
+import { useSync } from "@/hooks/useSync";
 
 export default function Portfolio() {
   const navigate = useNavigate();
   const { address } = useAccount();
-  const [dateRange, setDateRange] = useState("30d");
-  const [expandedRow, setExpandedRow] = useState<number | null>(null);
-  const [activityFilter, setActivityFilter] = useState("all");
+
+  // Sync data from indexer on page load
+  useSync();
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
-  // TODO: Replace with actual balance from ContractSource
-  const internalBalance = 0; // Mock internal balance
-
-  const filteredActivities = activities.filter(activity => {
-    if (activityFilter === "all") return true;
-    return activity.action.toLowerCase() === activityFilter;
+  // Fetch user's open positions from all markets
+  const { data: positions = [], isLoading: positionsLoading } = useQuery({
+    queryKey: ["portfolio-positions", address],
+    queryFn: async () => {
+      if (!address) return [];
+      const storage = new StorageLayer();
+      return storage.getUserOpenPositions(address);
+    },
+    enabled: !!address,
+    refetchInterval: 10000,
   });
+
+  // Fetch 7-day price trends for each unique market
+  const uniqueEngines = [...new Set(positions.map(p => p.engineAddress).filter(Boolean))];
+  console.log("[Portfolio] Unique engines for 7d trends:", uniqueEngines);
+  const { data: priceTrends = {} } = useQuery({
+    queryKey: ["portfolio-7d-trends", uniqueEngines],
+    queryFn: async () => {
+      if (uniqueEngines.length === 0) return {};
+      console.log("[Portfolio] Fetching 7d trends for engines:", uniqueEngines);
+      const storage = new StorageLayer();
+      const trends: Record<string, { price: number }[]> = {};
+      await Promise.all(
+        uniqueEngines.map(async (engine) => {
+          const data = await storage['supabase'].get7dTrend(engine);
+          console.log("[Portfolio] 7d trend for", engine, ":", data.length, "points");
+          trends[engine.toLowerCase()] = data.map(p => ({ price: p.price }));
+        })
+      );
+      return trends;
+    },
+    enabled: uniqueEngines.length > 0,
+    staleTime: 60000,
+  });
+
+  // Fetch recent activity (trades)
+  const { data: activity = [] } = useQuery({
+    queryKey: ["portfolio-activity", address],
+    queryFn: async () => {
+      if (!address) return [];
+      console.log("[Portfolio] Fetching activity for:", address);
+      const storage = new StorageLayer();
+      const result = await storage['supabase'].getWalletActivity(address, 20);
+      console.log("[Portfolio] Activity result:", result);
+      return result;
+    },
+    enabled: !!address,
+    staleTime: 30000,
+  });
+
+  // Fetch wallet portfolio stats (realized PnL, total trades, etc.)
+  const { data: walletPortfolio } = useQuery({
+    queryKey: ["wallet-portfolio", address],
+    queryFn: async () => {
+      if (!address) return null;
+      const storage = new StorageLayer();
+      return storage['supabase'].getWalletPortfolio(address);
+    },
+    enabled: !!address,
+    staleTime: 30000,
+  });
+
+  // Get unique market slugs from positions
+  const uniqueMarketSlugs = [...new Set(positions.map(p => p.marketSlug))];
+
+  // Fetch internal balance across ALL markets with contracts (not just ones with positions)
+  const { data: internalBalance = 0 } = useQuery({
+    queryKey: ["portfolio-internal-balance", address],
+    queryFn: async () => {
+      if (!address) return 0;
+
+      const storage = new StorageLayer();
+      let totalBalance = 0;
+
+      // Get all markets with deployed contracts
+      const allMarkets = await storage['supabase'].getAllMarketsWithContracts();
+
+      // Fetch balance for each market that has a perp engine
+      for (const market of allMarkets) {
+        if (market.perp_engine_address) {
+          const balance = await storage.contracts.getUserBalance(address, market.perp_engine_address);
+          totalBalance += balance;
+        }
+      }
+
+      return totalBalance;
+    },
+    enabled: !!address,
+    refetchInterval: 10000,
+  });
+
+  // Calculate portfolio metrics from real positions
+  const totalMargin = positions.reduce((sum, p) => sum + p.margin, 0);
+  const totalNotional = positions.reduce((sum, p) => sum + p.entryNotional, 0);
+  const totalPnL = walletPortfolio?.realizedPnl || 0;
+  const numPositions = positions.length;
+  const uniqueMarkets = uniqueMarketSlugs.length;
+
+  // Group positions by market for holdings display
+  const holdingsByMarket = positions.reduce((acc, pos) => {
+    const key = pos.marketSlug;
+    if (!acc[key]) {
+      acc[key] = {
+        marketSlug: pos.marketSlug,
+        positions: [],
+        totalMargin: 0,
+        totalNotional: 0,
+      };
+    }
+    acc[key].positions.push(pos);
+    acc[key].totalMargin += pos.margin;
+    acc[key].totalNotional += pos.entryNotional;
+    return acc;
+  }, {} as Record<string, { marketSlug: string; positions: typeof positions; totalMargin: number; totalNotional: number }>);
+
+  const holdings = Object.values(holdingsByMarket);
 
   const handleWithdraw = async () => {
     if (!address) {
@@ -138,25 +195,14 @@ export default function Portfolio() {
     <AppLayout>
       <div className="space-y-8">
       {/* Bloomberg-style News Ticker for held startups */}
-      <PortfolioNewsTicker holdingSlugs={holdings.map(h => h.slug)} />
+      <PortfolioNewsTicker holdingSlugs={holdings.map(h => h.marketSlug)} />
 
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-heading font-bold text-foreground mb-2">Portfolio</h1>
-          <p className="text-muted-foreground text-base">Overview of all your Velto startup holdings.</p>
+          <p className="text-muted-foreground text-base">Overview of all your Velto startup positions.</p>
         </div>
-        <Select value={dateRange} onValueChange={setDateRange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">Last 7 days</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="90d">Last 90 days</SelectItem>
-            <SelectItem value="1y">Last year</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Section 1: Portfolio KPIs */}
@@ -165,14 +211,29 @@ export default function Portfolio() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
-              Total Portfolio Value
+              Total Margin
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-mono text-foreground">
-              ${portfolioData.totalValue.toLocaleString()}
+              {formatUSD(totalMargin)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Current value of all tokenized shares</p>
+            <p className="text-xs text-muted-foreground mt-1">Collateral in open positions</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-[var(--shadow-card)] transition-shadow">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Total Notional
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold font-mono text-foreground">
+              {formatUSD(totalNotional)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Total position size (leveraged)</p>
           </CardContent>
         </Card>
 
@@ -180,47 +241,14 @@ export default function Portfolio() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Total PnL
+              Realized PnL
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-mono text-success">
-              +${portfolioData.totalPnL.toLocaleString()}
+            <div className={`text-3xl font-bold font-mono ${totalPnL >= 0 ? "text-success" : "text-destructive"}`}>
+              {totalPnL >= 0 ? "+" : ""}{formatUSD(totalPnL)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Realized + Unrealized PnL</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-[var(--shadow-card)] transition-shadow">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Percent className="h-4 w-4" />
-              Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold font-mono text-success">
-              +{portfolioData.performanceDelta}%
-            </div>
-            <div className="mt-3 h-12">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={portfolioData.sparklineData}>
-                  <defs>
-                    <linearGradient id="sparkGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="hsl(var(--success))"
-                    fill="url(#sparkGradient)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">From closed positions</p>
           </CardContent>
         </Card>
 
@@ -228,14 +256,14 @@ export default function Portfolio() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Building className="h-4 w-4" />
-              Startups Held
+              Open Positions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-mono text-foreground">
-              {portfolioData.numStartups}
+              {numPositions}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Across all industries</p>
+            <p className="text-xs text-muted-foreground mt-1">Across {uniqueMarkets} market{uniqueMarkets !== 1 ? 's' : ''}</p>
           </CardContent>
         </Card>
 
@@ -248,7 +276,7 @@ export default function Portfolio() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-mono text-foreground">
-              ${internalBalance.toLocaleString()}
+              {formatUSD(internalBalance)}
             </div>
             <div className="mt-2">
               <Button
@@ -266,296 +294,184 @@ export default function Portfolio() {
         </Card>
       </div>
 
-      {/* Section 2: Top 3 Startups Podium */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            Top Performing Startups
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 2nd Place */}
-            <div className="flex flex-col items-center order-2 md:order-1">
-              <div className="relative w-full max-w-[300px]">
-                <Card className="hover:shadow-[var(--shadow-glow)] hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 h-[280px] flex flex-col">
-                  <CardContent className="pt-6 flex-1 flex flex-col items-center justify-between">
-                    <div className="w-20 h-20 mb-3 rounded-lg overflow-hidden">
-                      <video autoPlay loop muted playsInline className="w-full h-full object-cover">
-                        <source src={unicornPodiumVideo} type="video/mp4" />
-                      </video>
-                    </div>
-                    <div className="text-center space-y-2 flex-1 flex flex-col justify-center">
-                      <Badge variant="outline" className="mb-1 text-xs bg-muted/50 text-muted-foreground border-muted">{topStartups[1].industry}</Badge>
-                      <h3 className="font-semibold text-sm leading-tight">{topStartups[1].name}</h3>
-                      <p className="text-2xl font-bold font-mono text-foreground">${topStartups[1].value.toLocaleString()}</p>
-                      <div className="flex justify-center">
-                        <Badge variant="default" className="bg-success text-success-foreground px-2 text-xs">
-                          +{topStartups[1].performance}%
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <div className="mt-2 h-12 bg-muted rounded-lg flex items-center justify-center font-bold text-lg border-2 border-border">
-                  2nd
-                </div>
-              </div>
-            </div>
-
-            {/* 1st Place - Taller */}
-            <div className="flex flex-col items-center order-1 md:order-2">
-              <div className="relative w-full max-w-[300px]">
-                <Card className="hover:shadow-[var(--shadow-glow)] hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 border-primary h-[320px] flex flex-col">
-                  <CardContent className="pt-6 flex-1 flex flex-col items-center justify-between">
-                    <div className="w-24 h-24 mb-3 rounded-lg overflow-hidden">
-                      <video autoPlay loop muted playsInline className="w-full h-full object-cover">
-                        <source src={unicornPodiumVideo} type="video/mp4" />
-                      </video>
-                    </div>
-                    <div className="text-center space-y-2 flex-1 flex flex-col justify-center">
-                      <Badge variant="outline" className="mb-1 bg-muted/50 text-muted-foreground border-muted">{topStartups[0].industry}</Badge>
-                      <h3 className="font-semibold leading-tight">{topStartups[0].name}</h3>
-                      <p className="text-3xl font-bold font-mono text-foreground">${topStartups[0].value.toLocaleString()}</p>
-                      <div className="flex justify-center">
-                        <Badge variant="default" className="bg-success text-success-foreground px-2 text-xs">
-                          +{topStartups[0].performance}%
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <div className="mt-2 h-16 bg-primary rounded-lg flex items-center justify-center font-bold text-2xl border-2 border-primary text-primary-foreground">
-                  1st
-                </div>
-              </div>
-            </div>
-
-            {/* 3rd Place */}
-            <div className="flex flex-col items-center order-3">
-              <div className="relative w-full max-w-[300px]">
-                <Card className="hover:shadow-[var(--shadow-glow)] hover:-translate-y-1 transition-all duration-300 cursor-pointer border-2 h-[240px] flex flex-col">
-                  <CardContent className="pt-6 flex-1 flex flex-col items-center justify-between">
-                    <div className="w-16 h-16 mb-3 rounded-lg overflow-hidden">
-                      <video autoPlay loop muted playsInline className="w-full h-full object-cover">
-                        <source src={unicornPodiumVideo} type="video/mp4" />
-                      </video>
-                    </div>
-                    <div className="text-center space-y-2 flex-1 flex flex-col justify-center">
-                      <Badge variant="outline" className="mb-1 text-xs bg-muted/50 text-muted-foreground border-muted">{topStartups[2].industry}</Badge>
-                      <h3 className="font-semibold text-xs leading-tight">{topStartups[2].name}</h3>
-                      <p className="text-xl font-bold font-mono text-foreground">${topStartups[2].value.toLocaleString()}</p>
-                      <div className="flex justify-center">
-                        <Badge variant="default" className="bg-success text-success-foreground px-2 text-xs">
-                          +{topStartups[2].performance}%
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <div className="mt-2 h-10 bg-muted rounded-lg flex items-center justify-center font-bold border-2 border-border">
-                  3rd
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Section 3: Holdings List */}
+      {/* Section 2: Open Positions */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl flex items-center gap-2">
               <Wallet className="h-5 w-5 text-foreground" />
-              Your Holdings
+              Open Positions
             </CardTitle>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">All Industries</Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">Gainers</Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">Largest</Badge>
-            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {holdings.map((holding) => (
-              <div key={holding.id} className="border border-muted rounded-lg overflow-hidden">
-                <div
-                  className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => setExpandedRow(expandedRow === holding.id ? null : holding.id)}
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-12 h-12 rounded-lg bg-background flex items-center justify-center p-2">
-                      <img 
-                        src={startupLogos[holding.slug]} 
-                        alt={`${holding.name} logo`}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-mono text-xs text-primary font-semibold">{getTicker(holding.slug)}</span>
-                                        <h4 className="font-semibold text-foreground">{holding.name}</h4>
-                                      </div>
-                                      <Badge variant="outline" className="text-xs mt-1 bg-muted/50 text-muted-foreground border-border">{holding.industry}</Badge>
-                                    </div>
-                  </div>
-                  <div className="flex items-center gap-8 text-sm">
-                    <div className="text-right">
-                      <p className="text-muted-foreground text-xs">Shares</p>
-                      <p className="font-mono font-semibold">{holding.shares.toLocaleString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-muted-foreground text-xs">Value</p>
-                      <p className="font-mono font-semibold">${holding.value.toLocaleString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-muted-foreground text-xs">Avg Entry</p>
-                      <p className="font-mono font-semibold">${holding.avgEntry}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-muted-foreground text-xs">Current</p>
-                      <p className="font-mono font-semibold">${holding.currentPrice}</p>
-                    </div>
-                    <div className="text-right min-w-[100px]">
-                      <Badge variant={holding.pnl >= 0 ? "default" : "destructive"} className={holding.pnl >= 0 ? "bg-success text-success-foreground" : ""}>
-                        {holding.pnl >= 0 ? "+" : ""}{holding.pnl}%
-                      </Badge>
-                    </div>
-                    {expandedRow === holding.id ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
-                  </div>
-                </div>
-                {expandedRow === holding.id && (
-                  <div className="border-t border-border/40 p-4 bg-muted/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm text-muted-foreground mb-3">7-day price trend</p>
-                        <div className="h-20">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={portfolioData.sparklineData.slice(0, 7)}>
-                              <defs>
-                                <linearGradient id={`grad${holding.id}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor={holding.color} stopOpacity={0.3} />
-                                  <stop offset="100%" stopColor={holding.color} stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <Area
-                                type="monotone"
-                                dataKey="value"
-                                stroke={holding.color}
-                                fill={`url(#grad${holding.id})`}
-                                strokeWidth={2}
-                              />
-                            </AreaChart>
-                          </ResponsiveContainer>
+          {positionsLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading positions...</div>
+          ) : holdings.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No open positions yet</p>
+              <Button onClick={() => navigate("/")}>Explore Markets</Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {holdings.map((holding) => {
+                const engineAddress = holding.positions[0]?.engineAddress?.toLowerCase() || "";
+                return (
+                  <div key={holding.marketSlug} className="border border-muted rounded-lg overflow-hidden">
+                    {/* Market Header - Clickable */}
+                    <div
+                      className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => setExpandedRow(expandedRow === holding.marketSlug ? null : holding.marketSlug)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center p-1.5">
+                          {startupLogos[holding.marketSlug] ? (
+                            <img
+                              src={startupLogos[holding.marketSlug]}
+                              alt={`${holding.marketSlug} logo`}
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <span className="text-sm font-bold text-muted-foreground">
+                              {holding.marketSlug.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-mono text-sm text-primary font-semibold">{getTicker(holding.marketSlug)}</span>
+                          <p className="text-xs text-muted-foreground">{holding.positions.length} position{holding.positions.length !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
-                      <div className="flex gap-3 ml-6">
-                        <Button variant="default" size="sm" onClick={() => navigate(`/startup/${holding.slug}`)}>Buy More</Button>
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/startup/${holding.slug}`)}>Sell</Button>
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/startup/${holding.slug}`)}>View Market</Button>
+                      <div className="flex items-center gap-8 text-sm">
+                        <div className="text-right">
+                          <p className="text-muted-foreground text-xs">Total Margin</p>
+                          <p className="font-mono font-semibold">{formatUSD(holding.totalMargin)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-muted-foreground text-xs">Total Notional</p>
+                          <p className="font-mono font-semibold">{formatUSD(holding.totalNotional)}</p>
+                        </div>
+                        {expandedRow === holding.marketSlug ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
                       </div>
                     </div>
+                    {/* Expanded: Trend + Positions */}
+                    {expandedRow === holding.marketSlug && (
+                      <div className="border-t border-border/40 bg-muted/20">
+                        {/* 7-day trend */}
+                        <div className="p-4 border-b border-border/40">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs text-muted-foreground">7-day price trend</p>
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/startup/${holding.marketSlug}`)}>
+                              View Market
+                            </Button>
+                          </div>
+                          <Sparkline
+                            data={priceTrends[engineAddress] || []}
+                            height={60}
+                          />
+                        </div>
+                        {/* Individual positions */}
+                        <div className="divide-y divide-border/40">
+                          {holding.positions.map((position) => (
+                            <div key={position.id} className="flex items-center justify-between p-4">
+                              <div className="flex items-center gap-3">
+                                <Badge variant={position.positionType === "long" ? "default" : "destructive"} className={position.positionType === "long" ? "bg-success text-success-foreground text-xs" : "text-xs"}>
+                                  {position.positionType.toUpperCase()}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">{position.leverage.toFixed(1)}x</span>
+                              </div>
+                              <div className="flex items-center gap-6 text-sm">
+                                <div className="text-right">
+                                  <p className="text-muted-foreground text-xs">Margin</p>
+                                  <p className="font-mono font-semibold">{formatUSD(position.margin)}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-muted-foreground text-xs">Size</p>
+                                  <p className="font-mono font-semibold">{formatUSD(position.entryNotional)}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-muted-foreground text-xs">Entry</p>
+                                  <p className="font-mono font-semibold">{formatUSD(position.entryPrice)}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-muted-foreground text-xs">Liq.</p>
+                                  <p className="font-mono font-semibold text-destructive">{formatUSD(position.liquidationPrice)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Section 4: Activity / Transactions History */}
+      {/* Section 3: Activity Log */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Activity
-            </CardTitle>
-            <div className="flex gap-2">
-              <Badge
-                variant={activityFilter === "all" ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setActivityFilter("all")}
-              >
-                All
-              </Badge>
-              <Badge
-                variant={activityFilter === "buy" ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setActivityFilter("buy")}
-              >
-                Buys
-              </Badge>
-              <Badge
-                variant={activityFilter === "sell" ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setActivityFilter("sell")}
-              >
-                Sells
-              </Badge>
-              <Badge
-                variant={activityFilter === "dividend" ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setActivityFilter("dividend")}
-              >
-                Dividends
-              </Badge>
-            </div>
-          </div>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <Activity className="h-5 w-5 text-foreground" />
+            Activity Log
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {filteredActivities.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between p-4 border border-muted rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center p-1.5">
-                    <img 
-                      src={startupLogos[activity.slug]} 
-                      alt={`${activity.startup} logo`}
-                      className="w-full h-full object-contain"
-                    />
+          {activity.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No trading activity yet
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {activity.map((trade) => (
+                <div
+                  key={trade.id}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      trade.type === "open"
+                        ? trade.side === "long" ? "bg-success/20" : "bg-destructive/20"
+                        : trade.type === "liquidation" ? "bg-destructive/20" : "bg-muted"
+                    }`}>
+                      {trade.type === "open" ? (
+                        trade.side === "long" ? <ArrowUpRight className="h-4 w-4 text-success" /> : <ArrowDownRight className="h-4 w-4 text-destructive" />
+                      ) : trade.type === "liquidation" ? (
+                        <Zap className="h-4 w-4 text-destructive" />
+                      ) : (
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium capitalize">{trade.type}</span>
+                        {trade.type === "open" && (
+                          <Badge variant={trade.side === "long" ? "default" : "destructive"} className={`text-[10px] ${trade.side === "long" ? "bg-success text-success-foreground" : ""}`}>
+                            {trade.side?.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {trade.timestamp.toLocaleDateString()} {trade.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-sm text-foreground">{activity.startup}</h4>
-                    <p className="text-xs text-muted-foreground">{activity.date}</p>
+                  <div className="text-right">
+                    <p className="font-mono text-sm font-medium">{formatUSD(trade.notional)}</p>
+                    <p className="text-xs text-muted-foreground">@ {formatUSD(trade.price)}</p>
+                    {trade.pnl !== undefined && (
+                      <p className={`text-xs font-mono ${trade.pnl >= 0 ? "text-success" : "text-destructive"}`}>
+                        {trade.pnl >= 0 ? "+" : ""}{formatUSD(trade.pnl)}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-8">
-                  <Badge
-                    variant={activity.action === "Buy" ? "default" : activity.action === "Sell" ? "destructive" : "outline"}
-                    className={
-                      activity.action === "Buy" 
-                        ? "bg-success text-success-foreground" 
-                        : activity.action === "Dividend" 
-                          ? "bg-amber-500/15 text-amber-400 border-amber-500/30" 
-                          : ""
-                    }
-                  >
-                    {activity.action}
-                  </Badge>
-                  {activity.quantity > 0 && (
-                    <>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Quantity</p>
-                        <p className="font-mono font-semibold text-sm">{activity.quantity}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Price</p>
-                        <p className="font-mono font-semibold text-sm">${activity.price}</p>
-                      </div>
-                    </>
-                  )}
-                  <div className="text-right min-w-[100px]">
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="font-mono font-bold text-foreground">${activity.total.toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -160,15 +160,12 @@ export class TradeService {
     const amountUsdc = parseUsdc(depositAmount.toString())
 
     // Step 1: Approve USDC
-    console.log('[TradeService] Approving USDC...')
     await this.approveUsdc(engineAddress, amountUsdc)
 
     // Step 2: Deposit USDC
-    console.log('[TradeService] Depositing USDC...')
     await this.deposit(engineAddress, depositAmount)
 
     // Step 3: Open position
-    console.log('[TradeService] Opening position...')
     return this.openPosition(engineAddress, isLong, totalToUse, leverage)
   }
 

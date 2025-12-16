@@ -20,11 +20,16 @@ export default function WorldMap() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("startups")
-        .select("id, name, slug, hq_location, hq_latitude, hq_longitude, unicorn_color, current_price, price_change_24h, industries(name)")
+        .select("id, name, slug, hq_location, hq_latitude, hq_longitude, unicorn_color, industries(name)")
         .order("name");
 
       if (error) throw error;
-      return data;
+      // Add placeholder price data - real prices come from contracts
+      return data?.map(s => ({
+        ...s,
+        current_price: 0,
+        price_change_24h: 0
+      }));
     },
   });
 

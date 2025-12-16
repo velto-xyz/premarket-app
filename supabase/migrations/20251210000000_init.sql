@@ -1,5 +1,5 @@
 -- ============================================================================
--- Velto Initial Schema
+-- Velto Initial Schema - Core Tables
 -- ============================================================================
 
 -- ============================================================================
@@ -27,9 +27,6 @@ CREATE TABLE public.startups (
   hq_location TEXT NOT NULL,
   hq_latitude DECIMAL(9,6),
   hq_longitude DECIMAL(9,6),
-  current_price DECIMAL(12,2) NOT NULL DEFAULT 0,
-  market_cap DECIMAL(20,2),
-  price_change_24h DECIMAL(5,2),
   unicorn_color TEXT DEFAULT '#8B5CF6',
   year_founded INTEGER,
   founders TEXT,
@@ -37,7 +34,7 @@ CREATE TABLE public.startups (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- User profiles table
+-- User profiles table (created on login via auth trigger)
 CREATE TABLE public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT,
@@ -45,6 +42,13 @@ CREATE TABLE public.profiles (
   avatar_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Wallets table (can exist without user, linked on login)
+CREATE TABLE public.wallets (
+  address TEXT PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Market contracts table (links startups to deployed smart contracts)
@@ -62,58 +66,50 @@ CREATE TABLE public.market_contracts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Legacy user positions table (deprecated - will use indexer)
-CREATE TABLE public.user_positions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  startup_id UUID NOT NULL REFERENCES public.startups(id) ON DELETE CASCADE,
-  position_type TEXT NOT NULL CHECK (position_type IN ('long', 'short')),
-  entry_price DECIMAL(12,2) NOT NULL,
-  quantity DECIMAL(18,8) NOT NULL,
-  leverage DECIMAL(5,2) NOT NULL DEFAULT 1.0,
-  liquidation_price DECIMAL(12,2),
-  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed', 'liquidated')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Trades table (indexed from chain events)
+CREATE TABLE public.trades (
+  id TEXT PRIMARY KEY,
+  engine TEXT NOT NULL,
+  user_address TEXT NOT NULL,
+  position_id BIGINT NOT NULL,
+  event_type TEXT NOT NULL CHECK (event_type IN ('open', 'close', 'liquidate')),
+  is_long BOOLEAN NOT NULL,
+  price DECIMAL(36,18) NOT NULL,
+  base_size DECIMAL(36,18) NOT NULL,
+  margin DECIMAL(36,18) NOT NULL,
+  notional DECIMAL(36,18) NOT NULL,
+  pnl DECIMAL(36,18),
+  timestamp TIMESTAMPTZ NOT NULL
 );
 
-COMMENT ON TABLE public.user_positions IS 'Legacy table - use Envio indexer for position data';
-
--- Position cache table (synced from blockchain events)
-CREATE TABLE public.cached_positions (
-  position_id TEXT PRIMARY KEY,
+-- Positions table (current state, synced from open/close events)
+CREATE TABLE public.positions (
+  id BIGINT PRIMARY KEY,
+  engine TEXT NOT NULL,
   user_address TEXT NOT NULL,
-  market_id UUID NOT NULL REFERENCES public.startups(id) ON DELETE CASCADE,
-  market_slug TEXT NOT NULL,
-  position_type TEXT NOT NULL CHECK (position_type IN ('long', 'short')),
-  entry_price NUMERIC NOT NULL,
-  base_size NUMERIC NOT NULL,
-  margin NUMERIC NOT NULL,
-  leverage NUMERIC NOT NULL,
-  entry_notional NUMERIC NOT NULL,
-  realized_pnl NUMERIC NOT NULL DEFAULT 0,
-  liquidation_price NUMERIC NOT NULL,
+  is_long BOOLEAN NOT NULL,
+  entry_price DECIMAL(36,18) NOT NULL,
+  base_size DECIMAL(36,18) NOT NULL,
+  margin DECIMAL(36,18) NOT NULL,
+  leverage DECIMAL(36,18) NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('open', 'closed', 'liquidated')),
   opened_at TIMESTAMPTZ NOT NULL,
-  opened_block BIGINT NOT NULL,
-  opened_tx_hash TEXT NOT NULL,
-  closed_at TIMESTAMPTZ,
-  closed_block BIGINT,
-  closed_tx_hash TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  closed_at TIMESTAMPTZ
 );
 
-COMMENT ON TABLE public.cached_positions IS 'Position cache synced from blockchain events';
-
--- Position sync state table (tracks event processing)
-CREATE TABLE public.position_sync_state (
-  market_slug TEXT PRIMARY KEY,
-  last_processed_block BIGINT NOT NULL,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- User holdings table (pre-computed stats per user per market)
+CREATE TABLE public.user_holdings (
+  id TEXT PRIMARY KEY,  -- user_address-engine (e.g. "0xabc...-0xdef...")
+  user_address TEXT NOT NULL,
+  engine TEXT NOT NULL,
+  open_position_count INTEGER NOT NULL DEFAULT 0,
+  open_margin DECIMAL(36,18) NOT NULL DEFAULT 0,  -- Total margin in open positions
+  total_trades INTEGER NOT NULL DEFAULT 0,
+  total_volume DECIMAL(36,18) NOT NULL DEFAULT 0,
+  realized_pnl DECIMAL(36,18) NOT NULL DEFAULT 0,
+  last_trade_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(user_address, engine)
 );
-
-COMMENT ON TABLE public.position_sync_state IS 'Tracks last processed block per market for event scanning';
 
 -- ============================================================================
 -- INDEXES
@@ -122,52 +118,130 @@ COMMENT ON TABLE public.position_sync_state IS 'Tracks last processed block per 
 CREATE INDEX idx_startups_industry ON public.startups(industry_id);
 CREATE INDEX idx_startups_slug ON public.startups(slug);
 
+CREATE INDEX idx_wallets_user ON public.wallets(user_id);
+
 CREATE INDEX idx_market_contracts_startup ON public.market_contracts(startup_id);
 CREATE INDEX idx_market_contracts_engine ON public.market_contracts(perp_engine_address);
 CREATE INDEX idx_market_contracts_active ON public.market_contracts(is_active) WHERE is_active = true;
 
-CREATE INDEX idx_user_positions_user ON public.user_positions(user_id);
-CREATE INDEX idx_user_positions_startup ON public.user_positions(startup_id);
-CREATE INDEX idx_user_positions_status ON public.user_positions(status);
+CREATE INDEX idx_trades_engine_time ON public.trades(engine, timestamp DESC);
+CREATE INDEX idx_trades_user_time ON public.trades(user_address, timestamp DESC);
+CREATE INDEX idx_trades_position ON public.trades(position_id);
 
-CREATE INDEX idx_cached_positions_user ON public.cached_positions(user_address);
-CREATE INDEX idx_cached_positions_market ON public.cached_positions(market_id);
-CREATE INDEX idx_cached_positions_status ON public.cached_positions(status);
-CREATE INDEX idx_cached_positions_user_market ON public.cached_positions(user_address, market_id);
+CREATE INDEX idx_positions_user_status ON public.positions(user_address, status);
+CREATE INDEX idx_positions_engine_status ON public.positions(engine, status);
+
+CREATE INDEX idx_user_holdings_user ON public.user_holdings(user_address);
+CREATE INDEX idx_user_holdings_engine ON public.user_holdings(engine);
 
 -- ============================================================================
--- VIEWS
+-- FUNCTIONS
 -- ============================================================================
 
--- Markets with contracts view (for easy querying)
-CREATE OR REPLACE VIEW public.markets_with_contracts AS
-SELECT
-  s.id,
-  s.name,
-  s.slug,
-  s.industry_id,
-  s.description,
-  s.logo_url,
-  s.hq_location,
-  s.hq_latitude,
-  s.hq_longitude,
-  s.current_price,
-  s.market_cap,
-  s.price_change_24h,
-  s.unicorn_color,
-  s.year_founded,
-  s.founders,
-  s.created_at,
-  s.updated_at,
-  mc.perp_engine_address,
-  mc.perp_market_address,
-  mc.position_manager_address,
-  mc.chain_id,
-  mc.deployment_block,
-  mc.deployed_at,
-  mc.is_active as contract_is_active
-FROM public.startups s
-LEFT JOIN public.market_contracts mc ON s.id = mc.startup_id;
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- Function to handle new user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'full_name'
+  );
+  RETURN new;
+END;
+$$;
+
+-- Function to update user holdings atomically
+CREATE OR REPLACE FUNCTION public.upsert_user_holding(
+  p_user_address TEXT,
+  p_engine TEXT,
+  p_event_type TEXT,
+  p_margin DECIMAL(36,18),
+  p_volume DECIMAL(36,18),
+  p_pnl DECIMAL(36,18),
+  p_timestamp TIMESTAMPTZ
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_id TEXT;
+  v_open_delta INTEGER;
+  v_margin_delta DECIMAL(36,18);
+  v_pnl_delta DECIMAL(36,18);
+BEGIN
+  v_id := p_user_address || '-' || p_engine;
+
+  -- Determine deltas based on event type
+  IF p_event_type = 'open' THEN
+    v_open_delta := 1;
+    v_margin_delta := p_margin;  -- Add margin when opening
+    v_pnl_delta := 0;
+  ELSE
+    -- close or liquidate
+    v_open_delta := -1;
+    v_margin_delta := -p_margin;  -- Remove margin when closing
+    v_pnl_delta := COALESCE(p_pnl, 0);
+  END IF;
+
+  INSERT INTO public.user_holdings (
+    id, user_address, engine, open_position_count, open_margin, total_trades, total_volume, realized_pnl, last_trade_at
+  ) VALUES (
+    v_id, p_user_address, p_engine, GREATEST(v_open_delta, 0), GREATEST(v_margin_delta, 0), 1, p_volume, v_pnl_delta, p_timestamp
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    open_position_count = GREATEST(user_holdings.open_position_count + v_open_delta, 0),
+    open_margin = GREATEST(user_holdings.open_margin + v_margin_delta, 0),
+    total_trades = user_holdings.total_trades + 1,
+    total_volume = user_holdings.total_volume + p_volume,
+    realized_pnl = user_holdings.realized_pnl + v_pnl_delta,
+    last_trade_at = p_timestamp;
+END;
+$$;
+
+-- ============================================================================
+-- TRIGGERS
+-- ============================================================================
+
+CREATE TRIGGER update_startups_updated_at
+  BEFORE UPDATE ON public.startups
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_market_contracts_updated_at
+  BEFORE UPDATE ON public.market_contracts
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================================
 -- ROW LEVEL SECURITY
@@ -176,10 +250,11 @@ LEFT JOIN public.market_contracts mc ON s.id = mc.startup_id;
 ALTER TABLE public.industries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.startups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.market_contracts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_positions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cached_positions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.position_sync_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.positions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_holdings ENABLE ROW LEVEL SECURITY;
 
 -- Industries (public read)
 CREATE POLICY "Industries are viewable by everyone"
@@ -215,109 +290,46 @@ CREATE POLICY "Users can update their own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
--- User positions (user owns their positions)
-CREATE POLICY "Users can view their own positions"
-  ON public.user_positions FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create their own positions"
-  ON public.user_positions FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own positions"
-  ON public.user_positions FOR UPDATE
-  USING (auth.uid() = user_id);
-
--- Cached positions (public read, authenticated write)
-CREATE POLICY "Anyone can read cached positions"
-  ON public.cached_positions FOR SELECT
+-- Wallets (public read, service role write for indexer)
+CREATE POLICY "Anyone can read wallets"
+  ON public.wallets FOR SELECT
   USING (true);
 
-CREATE POLICY "Authenticated users can insert/update cached positions"
-  ON public.cached_positions FOR ALL
-  TO authenticated
+CREATE POLICY "Service role can manage wallets"
+  ON public.wallets FOR ALL
+  TO service_role
   USING (true)
   WITH CHECK (true);
 
--- Position sync state (public read, authenticated write)
-CREATE POLICY "Anyone can read sync state"
-  ON public.position_sync_state FOR SELECT
+-- Trades (public read, service role write for indexer)
+CREATE POLICY "Anyone can read trades"
+  ON public.trades FOR SELECT
   USING (true);
 
-CREATE POLICY "Authenticated users can update sync state"
-  ON public.position_sync_state FOR ALL
-  TO authenticated
+CREATE POLICY "Service role can manage trades"
+  ON public.trades FOR ALL
+  TO service_role
   USING (true)
   WITH CHECK (true);
 
--- ============================================================================
--- FUNCTIONS & TRIGGERS
--- ============================================================================
+-- Positions (public read, service role write for indexer)
+CREATE POLICY "Anyone can read positions"
+  ON public.positions FOR SELECT
+  USING (true);
 
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$;
+CREATE POLICY "Service role can manage positions"
+  ON public.positions FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
--- Triggers for auto-updating timestamps
-CREATE TRIGGER update_startups_updated_at
-  BEFORE UPDATE ON public.startups
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+-- User holdings (public read, service role write for sync)
+CREATE POLICY "Anyone can read user_holdings"
+  ON public.user_holdings FOR SELECT
+  USING (true);
 
-CREATE TRIGGER update_profiles_updated_at
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_market_contracts_updated_at
-  BEFORE UPDATE ON public.market_contracts
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_user_positions_updated_at
-  BEFORE UPDATE ON public.user_positions
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_cached_positions_updated_at
-  BEFORE UPDATE ON public.cached_positions
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE TRIGGER update_position_sync_state_updated_at
-  BEFORE UPDATE ON public.position_sync_state
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
-
--- Function to handle new user creation
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
-  VALUES (
-    new.id,
-    new.email,
-    new.raw_user_meta_data->>'full_name'
-  );
-  RETURN new;
-END;
-$$;
-
--- Trigger to create profile on user signup
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_new_user();
+CREATE POLICY "Service role can manage user_holdings"
+  ON public.user_holdings FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);

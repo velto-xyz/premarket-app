@@ -19,6 +19,9 @@ import synapsehiveRobotics from './synapsehive-robotics.png';
 import synthharvestBiofoods from './synthharvest-biofoods.png';
 import terralumenBioenergy from './terralumen-bioenergy.png';
 import voltfrostVehicles from './voltfrost-vehicles.png';
+import spacexPerp from './spacex-perp.png';
+import stripePerp from './stripe-perp.png';
+import veltoPerp from './velto-perp.svg';
 
 // Export logos indexed by startup slug
 export const startupLogos: Record<string, string> = {
@@ -42,4 +45,7 @@ export const startupLogos: Record<string, string> = {
   'synthharvest-biofoods': synthharvestBiofoods,
   'terralumen-bioenergy': terralumenBioenergy,
   'voltfrost-vehicles': voltfrostVehicles,
+  'spacex-perp': spacexPerp,
+  'stripe-perp': stripePerp,
+  'velto-perp': veltoPerp,
 };

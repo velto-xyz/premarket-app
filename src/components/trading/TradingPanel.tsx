@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTrading } from "@/hooks/useTrading";
+import { StorageLayer } from "@/lib/storage";
+import { SupabaseSource } from "@/lib/storage/sources/SupabaseSource";
+
+const supabaseSource = new SupabaseSource();
 
 interface TradingPanelProps {
   startupId: string;
@@ -29,17 +34,43 @@ export default function TradingPanel({
   const [positionType, setPositionType] = useState<"long" | "short">("long");
   const [amount, setAmount] = useState<string>("100");
   const [leverage, setLeverage] = useState<number>(1);
-  const { openPosition, internalBalance, isConnected } = useTrading(startupSlug);
+  const { openPosition, internalBalance, availableBalance, isConnected } = useTrading(startupSlug);
 
   const amountNum = parseFloat(amount) || 0;
   const investment = amountNum;
+  const notional = investment * leverage;
+
+  // Simulate trade to get estimated entry price with slippage
+  const { data: tradeSimulation } = useQuery({
+    queryKey: ["tradeSimulation", startupSlug, positionType, notional],
+    queryFn: async () => {
+      if (notional <= 0) return null;
+      const contractInfo = await supabaseSource.getMarketContractInfoBySlug(startupSlug);
+      if (!contractInfo?.perpMarketAddress) return null;
+
+      const storage = new StorageLayer();
+      return storage.contracts.simulateOpenPosition(
+        contractInfo.perpMarketAddress,
+        positionType === "long",
+        notional
+      );
+    },
+    enabled: notional > 0,
+    staleTime: 2000,
+  });
+
+  const estimatedEntryPrice = tradeSimulation?.avgPrice || currentPrice;
+  const slippage = tradeSimulation?.slippage || 0;
+
   const potentialGain = investment * leverage * 0.1; // 10% move example
   const liquidationPrice =
     positionType === "long"
-      ? currentPrice * (1 - 1 / leverage)
-      : currentPrice * (1 + 1 / leverage);
+      ? estimatedEntryPrice * (1 - 1 / leverage)
+      : estimatedEntryPrice * (1 + 1 / leverage);
 
   const needsDeposit = amountNum > internalBalance;
+  const totalAvailable = internalBalance + availableBalance;
+  const insufficientFunds = amountNum > totalAvailable;
 
   const handleOpenPosition = () => {
     if (amountNum <= 0) return;
@@ -89,14 +120,18 @@ export default function TradingPanel({
           </Button>
         </div>
 
-        {/* Internal Balance Display */}
+        {/* Balance Display */}
         {isConnected && (
-          <div className="p-3 rounded-lg bg-background/50 border border-border">
+          <div className="p-3 rounded-lg bg-background/50 border border-border space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-1">
                 <Wallet className="h-4 w-4" />
-                Internal Balance
+                Wallet Balance
               </span>
+              <span className="font-mono font-semibold">${availableBalance.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Deposited Balance</span>
               <span className="font-mono font-semibold">${internalBalance.toFixed(2)}</span>
             </div>
           </div>
@@ -114,9 +149,14 @@ export default function TradingPanel({
             onChange={(e) => setAmount(e.target.value)}
             placeholder="Enter amount"
           />
-          {needsDeposit && isConnected && (
+          {needsDeposit && isConnected && !insufficientFunds && (
             <p className="text-xs text-amber-500">
               Will deposit ${(amountNum - internalBalance).toFixed(2)} from wallet
+            </p>
+          )}
+          {insufficientFunds && isConnected && (
+            <p className="text-xs text-destructive">
+              Need ${(amountNum - totalAvailable).toFixed(2)} more USDC
             </p>
           )}
         </div>
@@ -163,8 +203,31 @@ export default function TradingPanel({
         {/* Position Summary */}
         <div className="p-4 rounded-lg bg-background/50 border border-border space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Entry Price</span>
+            <span className="text-muted-foreground">Mark Price</span>
             <span className="font-medium">${currentPrice.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground flex items-center gap-1">
+              Est. Entry Price
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-[220px]">Estimated average price after slippage. Larger trades move the market more.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </span>
+            <span className="font-medium">
+              ${estimatedEntryPrice.toFixed(2)}
+              {slippage !== 0 && (
+                <span className={`ml-1 text-xs ${slippage > 0 ? "text-destructive" : "text-success"}`}>
+                  ({slippage > 0 ? "+" : ""}{slippage.toFixed(2)}%)
+                </span>
+              )}
+            </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Investment</span>
@@ -217,12 +280,14 @@ export default function TradingPanel({
         {/* Open Position Button */}
         <Button
           onClick={handleOpenPosition}
-          disabled={!isConnected || amountNum <= 0 || openPosition.isPending}
+          disabled={!isConnected || amountNum <= 0 || openPosition.isPending || insufficientFunds}
           className="w-full glow"
           size="lg"
         >
           {!isConnected
             ? "Connect Wallet to Trade"
+            : insufficientFunds
+            ? "Insufficient Funds"
             : openPosition.isPending
             ? "Processing..."
             : needsDeposit
@@ -232,9 +297,9 @@ export default function TradingPanel({
 
         <p className="text-xs text-muted-foreground text-center">
           Trading fee: 0.1% • Max multiplier: 10x
-          {needsDeposit && isConnected && (
+          {needsDeposit && isConnected && !insufficientFunds && (
             <span className="block mt-1 text-amber-500">
-              Requires 2 transactions: Approve + Deposit
+              Requires permit signature + transaction
             </span>
           )}
         </p>

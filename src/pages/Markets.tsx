@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { storage } from "@/lib/storage";
+import { StorageLayer } from "@/lib/storage/StorageLayer";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,31 +8,11 @@ import { TrendingUp, TrendingDown, Filter } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { startupLogos } from "@/assets/logos";
 import { getTicker } from "@/lib/tickers";
 import { formatUSD, formatPercent } from "@/lib/format";
 import { useMarketDataStream } from "@/hooks/useMarketDataStream";
-
-// Seeded random for consistent sparkline data per startup
-const seededRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
-// Generate sparkline data based on startup properties
-const generateSparklineData = (startupId: string, basePrice: number, priceChange: number, tick: number) => {
-  const seed = startupId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const trend = priceChange >= 0 ? 1 : -1;
-  const volatility = Math.abs(priceChange) * 0.15;
-  
-  return Array.from({ length: 14 }, (_, i) => {
-    const randomFactor = seededRandom(seed + i + tick * 0.1) * volatility;
-    const trendFactor = (i / 13) * priceChange * 0.08;
-    const price = basePrice * (1 - trendFactor * trend + (randomFactor - volatility / 2));
-    return { day: i, price: Math.max(0.01, price) };
-  });
-};
 
 export default function Markets() {
   const navigate = useNavigate();
@@ -39,15 +20,6 @@ export default function Markets() {
   const [selectedIndustry, setSelectedIndustry] = useState<string>("all");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name");
-  const [sparklineTick, setSparklineTick] = useState(0);
-
-  // Update sparklines every 3 seconds for dynamic effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSparklineTick(prev => prev + 1);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Industries still from Supabase directly (not in storage layer yet)
   const { data: industries } = useQuery({
@@ -80,6 +52,27 @@ export default function Markets() {
     },
   });
 
+  // Fetch 7-day price trends for sparklines
+  const engineAddresses = markets?.map(m => m.perpEngineAddress).filter(Boolean) || [];
+  const { data: priceTrends = {} } = useQuery({
+    queryKey: ["markets-7d-trends", engineAddresses],
+    queryFn: async () => {
+      if (engineAddresses.length === 0) return {};
+      const storageLayer = new StorageLayer();
+      const trends: Record<string, { price: number }[]> = {};
+      await Promise.all(
+        engineAddresses.map(async (engine) => {
+          if (!engine) return;
+          const data = await storageLayer['supabase'].get7dTrend(engine);
+          trends[engine] = data.map(p => ({ price: p.price }));
+        })
+      );
+      return trends;
+    },
+    enabled: engineAddresses.length > 0,
+    staleTime: 60000,
+  });
+
   // Stream real-time market data from contracts (polls every 3s)
   useMarketDataStream(markets);
 
@@ -99,6 +92,7 @@ export default function Markets() {
     market_cap: m.quoteReserve,  // quoteReserve is the market cap in vAMM model
     year_founded: m.yearFounded,
     unicorn_color: m.unicornColor,
+    perp_engine_address: m.perpEngineAddress,
     industries: industries?.find(ind => ind.id === m.industryId)
   }));
 
@@ -277,8 +271,8 @@ export default function Markets() {
 
                     <div className="flex items-center gap-6">
                       {startup.market_cap && (
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">
+                        <div className="text-right w-32">
+                          <div className="text-lg font-semibold tabular-nums">
                             ${Number(startup.market_cap).toLocaleString()}
                           </div>
                           <div className="text-xs text-muted-foreground">
@@ -290,13 +284,8 @@ export default function Markets() {
                       {/* Sparkline */}
                       <div className="w-28 h-12">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart 
-                            data={generateSparklineData(
-                              startup.id, 
-                              Number(startup.current_price), 
-                              startup.price_change_24h || 0, 
-                              sparklineTick
-                            )}
+                          <LineChart
+                            data={priceTrends[startup.perp_engine_address || ''] || []}
                           >
                             <defs>
                               <linearGradient id={`gradient-${startup.id}`} x1="0" y1="0" x2="1" y2="0">
@@ -317,8 +306,8 @@ export default function Markets() {
                         </ResponsiveContainer>
                       </div>
 
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">
+                      <div className="text-right w-28">
+                        <div className="text-2xl font-bold tabular-nums">
                           {formatUSD(startup.current_price)}
                         </div>
                         <div className="text-sm text-muted-foreground">

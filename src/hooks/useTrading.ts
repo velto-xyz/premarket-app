@@ -5,6 +5,19 @@ import { StorageLayer } from "@/lib/storage/StorageLayer";
 import { getDeployment } from "@/integrations/contract-api";
 import { getChainId } from "@/lib/viem-client";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+async function triggerSync() {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/sync-data`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (err) {
+    console.error('[useTrading] Sync error:', err);
+  }
+}
+
 export interface OpenPositionParams {
   marketSlug: string;
   positionType: "long" | "short";
@@ -18,7 +31,7 @@ export const useTrading = (marketSlug: string) => {
   const queryClient = useQueryClient();
   const chainId = getChainId();
 
-  // Get internal balance
+  // Get internal balance (deposited in protocol)
   const { data: internalBalance = 0 } = useQuery({
     queryKey: ["internalBalance", address, marketSlug],
     queryFn: async () => {
@@ -35,7 +48,23 @@ export const useTrading = (marketSlug: string) => {
       );
     },
     enabled: !!address && !!walletClient,
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
+  });
+
+  // Get available balance (USDC in wallet)
+  const { data: availableBalance = 0 } = useQuery({
+    queryKey: ["availableBalance", address, chainId],
+    queryFn: async () => {
+      if (!address || !walletClient) return 0;
+
+      const deployment = getDeployment(chainId);
+      if (!deployment?.usdc) return 0;
+
+      const storage = new StorageLayer(walletClient);
+      return storage.contracts.getAvailableBalance(address, deployment.usdc);
+    },
+    enabled: !!address && !!walletClient,
+    refetchInterval: 10000,
   });
 
   // Open position mutation
@@ -58,8 +87,17 @@ export const useTrading = (marketSlug: string) => {
         throw new Error(`USDC address not found for chain ${chainId}`);
       }
 
+      // Get fresh raw balance (bigint) to avoid precision loss
+      const internalBalanceRaw = await storage.contracts.getUserBalanceRaw(
+        address,
+        contractInfo.perpEngineAddress
+      );
+
+      // Convert user input to bigint (18 decimals for internal balance)
+      const amountRaw = BigInt(Math.floor(params.amount * 1e18));
+
       // Check if user has enough internal balance
-      const hasEnoughBalance = internalBalance >= params.amount;
+      const hasEnoughBalance = internalBalanceRaw >= amountRaw;
 
       if (hasEnoughBalance) {
         // Use internal balance - faster, no approvals needed
@@ -79,7 +117,10 @@ export const useTrading = (marketSlug: string) => {
         // Need to deposit - use permit flow (1 transaction)
         toast.info("Please sign permit and confirm transaction...");
 
-        const depositAmount = params.amount - internalBalance;
+        // Calculate deposit needed in raw bigint, then convert to USDC decimals (6)
+        const depositNeededRaw = amountRaw - internalBalanceRaw;
+        // Convert from 18 decimals to number for USDC (will be converted to 6 decimals in TradeService)
+        const depositAmount = Number(depositNeededRaw) / 1e18;
 
         return storage.depositAndOpenPositionWithPermit(
           address,
@@ -93,22 +134,23 @@ export const useTrading = (marketSlug: string) => {
         );
       }
     },
-    onSuccess: async (result, variables) => {
-      console.log('[useTrading] openPosition result:', result);
-
+    onSuccess: async (result) => {
       if (result.status === "confirmed") {
         toast.success("Position opened successfully!", {
           description: `Position ID: ${result.positionId}`,
         });
 
         // Wait for event indexing (local node needs time to index events)
-        console.log('[useTrading] Waiting for event indexing...');
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Invalidate queries to refetch positions from blockchain
-        console.log('[useTrading] Invalidating position queries...');
+        // Trigger sync to pull latest data from indexer
+        await triggerSync();
+
+        // Invalidate queries to refetch data
         queryClient.invalidateQueries({ queryKey: ["positions"] });
         queryClient.invalidateQueries({ queryKey: ["internalBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["market", marketSlug] });
+        queryClient.invalidateQueries({ queryKey: ["price-history", marketSlug] });
       } else {
         toast.error("Transaction failed", {
           description: result.error || "Unknown error",
@@ -116,7 +158,6 @@ export const useTrading = (marketSlug: string) => {
       }
     },
     onError: (error: Error) => {
-      console.error("Error opening position:", error);
       toast.error("Failed to open position", {
         description: error.message,
       });
@@ -144,7 +185,7 @@ export const useTrading = (marketSlug: string) => {
         { positionId }
       );
     },
-    onSuccess: async (result, variables) => {
+    onSuccess: async (result) => {
       if (result.status === "confirmed") {
         const pnlText = result.totalPnl
           ? ` PnL: ${result.totalPnl >= 0 ? '+' : ''}$${result.totalPnl.toFixed(2)}`
@@ -154,9 +195,14 @@ export const useTrading = (marketSlug: string) => {
           description: `Transaction: ${result.txHash?.slice(0, 10)}...`,
         });
 
-        // Invalidate queries to refetch positions from blockchain
+        // Trigger sync to pull latest data from indexer
+        await triggerSync();
+
+        // Invalidate queries to refetch data
         queryClient.invalidateQueries({ queryKey: ["positions"] });
         queryClient.invalidateQueries({ queryKey: ["internalBalance"] });
+        queryClient.invalidateQueries({ queryKey: ["market", marketSlug] });
+        queryClient.invalidateQueries({ queryKey: ["price-history", marketSlug] });
       } else {
         toast.error("Transaction failed", {
           description: result.error || "Unknown error",
@@ -164,7 +210,6 @@ export const useTrading = (marketSlug: string) => {
       }
     },
     onError: (error: Error) => {
-      console.error("Error closing position:", error);
       toast.error("Failed to close position", {
         description: error.message,
       });
@@ -173,6 +218,7 @@ export const useTrading = (marketSlug: string) => {
 
   return {
     internalBalance,
+    availableBalance,
     openPosition,
     closePosition,
     isConnected: !!address && !!walletClient,

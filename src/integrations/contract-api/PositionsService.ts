@@ -22,8 +22,6 @@ export class PositionsService {
     userAddress: Address,
     deploymentBlock: bigint
   ): Promise<Position[]> {
-    console.log('[PositionsService] Fetching PositionOpened events for user:', userAddress)
-
     // Get PositionOpened events using viem's getContractEvents with user filter
     const openedEvents = await getContractEvents(this.publicClient, {
       address: engineAddress,
@@ -35,9 +33,6 @@ export class PositionsService {
       fromBlock: deploymentBlock,
       toBlock: 'latest'
     })
-
-    console.log('[PositionsService] PositionOpened events for user:', openedEvents.length)
-    console.log('[PositionsService] Events:', openedEvents)
 
     if (openedEvents.length === 0) {
       return []
@@ -67,11 +62,6 @@ export class PositionsService {
       toBlock: 'latest'
     })
 
-    console.log('[PositionsService] Closed/Liquidated:', {
-      closed: closedEvents.length,
-      liquidated: liquidatedEvents.length
-    })
-
     // Build set of closed position IDs
     const closedIds = new Set<bigint>()
     closedEvents.forEach(e => {
@@ -86,15 +76,11 @@ export class PositionsService {
       .filter(e => e.args.positionId && !closedIds.has(e.args.positionId))
       .map(e => e.args.positionId!)
 
-    console.log('[PositionsService] Open position IDs:', openPositionIds.map(id => id.toString()))
-
     if (openPositionIds.length === 0) {
-      console.log('[PositionsService] No open positions')
       return []
     }
 
     // Fetch position details from PositionManager
-    console.log('[PositionsService] Fetching position details...')
     const positions = await Promise.all(
       openPositionIds.map(id =>
         this.publicClient.readContract({
@@ -105,8 +91,6 @@ export class PositionsService {
         }) as Promise<Position>
       )
     )
-
-    console.log('[PositionsService] Fetched positions:', positions.length)
 
     return positions
   }
@@ -199,7 +183,7 @@ export class PositionsService {
   }
 
   /**
-   * Get user's wallet balance in PerpEngine
+   * Get user's wallet balance in PerpEngine (internal/deposited balance)
    */
   async getWalletBalance(
     engineAddress: Address,
@@ -209,6 +193,27 @@ export class PositionsService {
       address: engineAddress,
       abi: perpEngineAbi,
       functionName: 'getWalletBalance',
+      args: [userAddress]
+    }) as Promise<bigint>
+  }
+
+  /**
+   * Get user's USDC balance in their wallet (available to deposit)
+   */
+  async getUsdcBalance(
+    usdcAddress: Address,
+    userAddress: Address
+  ): Promise<bigint> {
+    return this.publicClient.readContract({
+      address: usdcAddress,
+      abi: [{
+        name: 'balanceOf',
+        type: 'function',
+        inputs: [{ name: 'account', type: 'address' }],
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view'
+      }] as const,
+      functionName: 'balanceOf',
       args: [userAddress]
     }) as Promise<bigint>
   }

@@ -1,7 +1,4 @@
--- ============================================================================
 -- Seed Industries
--- ============================================================================
-
 INSERT INTO public.industries (name, slug, description, icon_name) VALUES
   ('Space', 'space', 'Space exploration and aerospace technology', 'Rocket'),
   ('FinTech', 'fintech', 'Financial Technology startups revolutionizing banking and payments', 'Wallet'),

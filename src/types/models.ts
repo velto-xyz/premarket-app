@@ -45,6 +45,7 @@ export interface Position {
   userId: string // wallet address
   marketId: string
   marketSlug: string
+  engineAddress?: string // perp engine contract address
 
   // Position details
   positionType: 'long' | 'short'
