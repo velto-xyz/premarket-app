@@ -1,0 +1,26 @@
+{
+  "31337": {
+    "factory": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    "liquidationEngine": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "fundingManager": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    "perpMarketImpl": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "positionManagerImpl": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "perpEngineImpl": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "timestamp": 1765914149,
+    "deploymentBlock": 0,
+    "usdc": "0x0165878A594ca255338adfa4d48449f69242Eb8F"
+  },
+  "84532": {
+    "factory": "0xE0Bfa341Ef912FF15569B69c4cbEfE9CF8837e11",
+    "liquidationEngine": "0x0e0BED8DF7185cE8B5286C08d934A298091f3793",
+    "fundingManager": "0x40019F9b7Ad27C019da556f956aa24039fC5dA26",
+    "perpMarketImpl": "0x3e42C3925088BC4B2EeB759DfA480f9707692934",
+    "positionManagerImpl": "0x8Ef6fc287d53E56645450cB119bCCB7832551Aa7",
+    "perpEngineImpl": "0x79d968d9017B96f202aD4673A2c1BBbdc905A4ca",
+    "deployer": "0x731D7B95b83cb09b699BdF522D1C2Cfba5CA3f5a",
+    "timestamp": 1765900356,
+    "deploymentBlock": 35066034,
+    "usdc": "0x308e483afDD225D6cb7bF4d44B8e4a03DFD9c0De"
+  }
+}
