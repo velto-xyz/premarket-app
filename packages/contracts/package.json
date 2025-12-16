@@ -1,0 +1,30 @@
+{
+  "name": "@velto/contracts",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "generate": "wagmi generate",
+    "build": "npm run generate && tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "viem": "^2.40.3"
+  },
+  "devDependencies": {
+    "@wagmi/cli": "^2.1.15",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "viem": "^2.0.0"
+  }
+}
