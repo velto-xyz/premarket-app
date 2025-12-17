@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useMarketDataStream } from "@/hooks/useMarketDataStream";
+import { formatCompactUSD } from "@/lib/format";
 
 export default function Industries() {
   const navigate = useNavigate();
@@ -149,11 +150,7 @@ export default function Industries() {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Market Cap</p>
                     <p className="text-3xl font-bold tabular-nums text-foreground">
-                      ${totalMarketCap >= 1000000000
-                        ? `${(totalMarketCap / 1000000000).toFixed(2)}B`
-                        : totalMarketCap >= 1000000
-                        ? `${(totalMarketCap / 1000000).toFixed(2)}M`
-                        : totalMarketCap.toLocaleString()}
+                      {formatCompactUSD(totalMarketCap)}
                     </p>
                   </div>
                 </div>
@@ -170,11 +167,7 @@ export default function Industries() {
                   <div>
                     <p className="text-sm text-muted-foreground">24H Volume</p>
                     <p className="text-3xl font-bold tabular-nums text-foreground">
-                      ${totalVolume >= 1000000000
-                        ? `${(totalVolume / 1000000000).toFixed(2)}B`
-                        : totalVolume >= 1000000
-                        ? `${(totalVolume / 1000000).toFixed(2)}M`
-                        : totalVolume.toLocaleString()}
+                      {formatCompactUSD(totalVolume)}
                     </p>
                   </div>
                 </div>

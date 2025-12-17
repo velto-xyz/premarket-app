@@ -480,7 +480,7 @@ Deno.serve(async (req) => {
             raw_value: result.rawValue,
             metadata: result.metadata,
             fetched_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
           }, {
             onConflict: 'startup_slug,source',
           })
