@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useMemo, useEffect } from "react";
 import { startupLogos } from "@/assets/logos";
 import { getTicker } from "@/lib/tickers";
-import { formatUSD, formatPercent } from "@/lib/format";
+import { formatUSD, formatPercent, formatCompactUSD } from "@/lib/format";
 import { useMarketDataStream } from "@/hooks/useMarketDataStream";
 
 export default function Markets() {
@@ -273,7 +273,7 @@ export default function Markets() {
                       {startup.market_cap && (
                         <div className="text-right w-32">
                           <div className="text-lg font-semibold tabular-nums">
-                            ${Number(startup.market_cap).toLocaleString()}
+                            {formatCompactUSD(startup.market_cap)}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             Market Cap

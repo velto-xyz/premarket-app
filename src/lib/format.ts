@@ -87,6 +87,23 @@ export function formatCompact(value: number): string {
 }
 
 /**
+ * Compact USD format ($1.2K, $3.5M, etc)
+ */
+export function formatCompactUSD(value: number | string): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return `$${formatCompact(num)}`;
+}
+
+/**
+ * Format USD as whole number (no decimals)
+ */
+export function formatUSDWhole(value: number | string): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num) || !isFinite(num)) return '$0';
+  return `$${Math.round(num).toLocaleString()}`;
+}
+
+/**
  * Format address (0x1234...5678)
  */
 export function formatAddress(addr: string): string {

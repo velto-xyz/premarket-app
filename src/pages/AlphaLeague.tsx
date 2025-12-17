@@ -5,65 +5,76 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TrendingUp, BarChart3, Brain, Sparkles, Clock, ChevronRight } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { startupLogos } from "@/assets/logos";
 import { getTicker } from "@/lib/tickers";
+import { storage } from "@/lib/storage";
+import { useMarketDataStream } from "@/hooks/useMarketDataStream";
+import { useSentiments } from "@/hooks/useSentiment";
+import { formatUSD, formatPercent, formatCompactUSD } from "@/lib/format";
 
 export default function AlphaLeague() {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState({ days: 2, hours: 14, minutes: 30, seconds: 0 });
-  const [scores, setScores] = useState<Record<string, number>>({});
 
-  // Fetch startups for the full rankings table
-  const { data: startups = [] } = useQuery({
-    queryKey: ["startups-league"],
+  // Fetch markets from storage layer (real data)
+  const { data: markets = [] } = useQuery({
+    queryKey: ["all-markets"],
+    queryFn: async () => storage.getAllMarkets(),
+  });
+
+  // Stream real-time market data from contracts
+  useMarketDataStream(markets);
+
+  // Fetch industries for display
+  const { data: industries } = useQuery({
+    queryKey: ["industries"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("startups")
-        .select("id, name, slug, industries(name)")
-        .order("name")
-        .limit(20);
-      if (error) throw error;
-      // Add placeholder data - real prices/rankings come from contracts/views
-      return data?.map(s => ({
-        ...s,
-        current_price: 100 + Math.random() * 50,
-        price_change_24h: (Math.random() - 0.3) * 20,
-        market_cap: 1000000 + Math.random() * 5000000
-      })) || [];
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.from("industries").select("*").order("name");
+      return data;
     },
   });
 
-  // Initialize and animate scores based on real startups
-  useEffect(() => {
-    if (startups.length > 0) {
-      // Initialize scores based on price change and market cap
-      const initialScores: Record<string, number> = {};
-      startups.forEach((startup, index) => {
-        const baseScore = 95 - (index * 3); // Higher ranked startups get higher base scores
-        const priceBonus = (startup.price_change_24h || 0) * 2;
-        initialScores[startup.id] = Math.min(100, Math.max(60, baseScore + priceBonus));
-      });
-      setScores(initialScores);
-    }
-  }, [startups]);
+  // Transform markets to startup format
+  const startups = useMemo(() => {
+    return markets.map(m => ({
+      id: m.id,
+      name: m.name,
+      slug: m.slug,
+      current_price: m.currentPrice || 0,
+      price_change_24h: m.priceChange24h || 0,
+      market_cap: m.quoteReserve || 0,
+      volume_24h: m.totalVolume || 0,
+      industries: industries?.find(ind => ind.id === m.industryId),
+    }));
+  }, [markets, industries]);
 
-  // Animate the bar race
-  useEffect(() => {
-    if (startups.length === 0) return;
+  // Fetch sentiment scores from Wikipedia
+  const { data: sentimentMap } = useSentiments(
+    startups.map(s => ({ slug: s.slug, name: s.name }))
+  );
 
-    const interval = setInterval(() => {
-      setScores(prev => {
-        const newScores = { ...prev };
-        Object.keys(newScores).forEach(id => {
-          newScores[id] = Math.max(60, Math.min(100, newScores[id] + (Math.random() - 0.5) * 3));
-        });
-        return newScores;
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [startups]);
+  // Calculate ranking scores based on real metrics
+  const rankedStartups = useMemo(() => {
+    return startups
+      .map(startup => {
+        const sentiment = sentimentMap?.get(startup.slug);
+        // Score = price change weight + volume weight + sentiment weight
+        const priceScore = Math.min(40, Math.max(0, (startup.price_change_24h + 20) * 1)); // -20% to +20% -> 0-40
+        const volumeScore = Math.min(30, Math.log10(Math.max(startup.volume_24h, 1)) * 5); // Log scale
+        const sentimentScore = sentiment ? (sentiment.aggregateScore / 100) * 30 : 15; // 0-30
+        const totalScore = Math.min(100, Math.max(0, priceScore + volumeScore + sentimentScore));
+
+        return {
+          ...startup,
+          score: totalScore,
+          sentiment: sentiment?.aggregateScore || 50,
+          sentimentTrend: sentiment?.trend || 'stable',
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+  }, [startups, sentimentMap]);
 
   // Countdown timer
   useEffect(() => {
@@ -81,28 +92,38 @@ export default function AlphaLeague() {
     return () => clearInterval(timer);
   }, []);
 
-  // Race data derived from startups with animated scores
+  // Race data derived from ranked startups (top 5)
   const raceData = useMemo(() => {
-    return startups
-      .slice(0, 5)
-      .map(startup => ({
-        id: startup.id,
-        ticker: getTicker(startup.slug),
+    return rankedStartups.slice(0, 5).map(startup => ({
+      id: startup.id,
+      ticker: getTicker(startup.slug),
+      name: startup.name,
+      slug: startup.slug,
+      score: startup.score,
+      change: startup.price_change_24h,
+      volume: startup.volume_24h,
+      marketCap: startup.market_cap,
+      sentiment: startup.sentiment,
+      sentimentTrend: startup.sentimentTrend,
+      price: startup.current_price,
+    }));
+  }, [rankedStartups]);
 
-        name: startup.name,
-        slug: startup.slug,
-        score: scores[startup.id] || 75,
-        change: startup.price_change_24h || 0,
-        volume: (startup.market_cap || 0) / 1000000, // Volume as market cap in millions
-        sentiment: Math.floor(60 + Math.abs(startup.price_change_24h || 0) * 5 + Math.random() * 20),
-        price: startup.current_price,
-      }))
-      .sort((a, b) => b.score - a.score);
-  }, [startups, scores]);
+  // Podium winners
+  const topGainer = useMemo(() => {
+    if (rankedStartups.length === 0) return null;
+    return [...rankedStartups].sort((a, b) => b.price_change_24h - a.price_change_24h)[0];
+  }, [rankedStartups]);
 
-  const topGainer = raceData[0] || null;
-  const mostLiquid = raceData.length > 0 ? [...raceData].sort((a, b) => b.volume - a.volume)[0] : null;
-  const highestSentiment = raceData.length > 0 ? [...raceData].sort((a, b) => b.sentiment - a.sentiment)[0] : null;
+  const mostLiquid = useMemo(() => {
+    if (rankedStartups.length === 0) return null;
+    return [...rankedStartups].sort((a, b) => b.volume_24h - a.volume_24h)[0];
+  }, [rankedStartups]);
+
+  const highestSentiment = useMemo(() => {
+    if (rankedStartups.length === 0) return null;
+    return [...rankedStartups].sort((a, b) => b.sentiment - a.sentiment)[0];
+  }, [rankedStartups]);
 
   const getLogoUrl = (slug: string) => {
     return startupLogos[slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"];
@@ -207,21 +228,21 @@ export default function AlphaLeague() {
                       className="w-12 h-12 rounded-xl object-cover"
                     />
                     <div>
-                      <p className="font-mono font-bold text-foreground text-lg">{topGainer.ticker}</p>
+                      <p className="font-mono font-bold text-foreground text-lg">{getTicker(topGainer.slug)}</p>
                       <p className="text-muted-foreground text-sm">{topGainer.name}</p>
                     </div>
                   </div>
-                  <p className="text-4xl font-mono font-bold text-success">
-                    +{topGainer.change.toFixed(1)}%
+                  <p className={`text-4xl font-mono font-bold ${topGainer.price_change_24h >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {topGainer.price_change_24h >= 0 ? '+' : ''}{formatPercent(topGainer.price_change_24h)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Price Performance</p>
+                  <p className="text-xs text-muted-foreground">24h Price Change</p>
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full border-0 bg-success/10 text-success hover:bg-success/20"
-                    onClick={() => navigate("/markets")}
+                    onClick={() => navigate(`/startup/${topGainer.slug}`)}
                   >
-                    Trade to Qualify
+                    Trade Now
                   </Button>
                 </>
               ) : (
@@ -251,21 +272,21 @@ export default function AlphaLeague() {
                       className="w-12 h-12 rounded-xl object-cover"
                     />
                     <div>
-                      <p className="font-mono font-bold text-foreground text-lg">{mostLiquid.ticker}</p>
+                      <p className="font-mono font-bold text-foreground text-lg">{getTicker(mostLiquid.slug)}</p>
                       <p className="text-muted-foreground text-sm">{mostLiquid.name}</p>
                     </div>
                   </div>
                   <p className="text-4xl font-mono font-bold text-blue-500">
-                    ${mostLiquid.volume.toFixed(1)}M
+                    {formatCompactUSD(mostLiquid.volume_24h)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Trading Volume</p>
+                  <p className="text-xs text-muted-foreground">24h Volume</p>
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full border-0 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
-                    onClick={() => navigate("/markets")}
+                    onClick={() => navigate(`/startup/${mostLiquid.slug}`)}
                   >
-                    Trade to Qualify
+                    Trade Now
                   </Button>
                 </>
               ) : (
@@ -274,7 +295,7 @@ export default function AlphaLeague() {
             </CardContent>
           </Card>
 
-          {/* Highest AI Sentiment */}
+          {/* Highest AI Sentiment (Wikipedia Trending) */}
           <Card className="glass border-purple-500/20 relative overflow-hidden">
             <div className="absolute inset-0 opacity-20 bg-gradient-to-b from-purple-500 to-transparent" />
             <CardHeader className="relative">
@@ -282,7 +303,7 @@ export default function AlphaLeague() {
                 <div className="p-2 rounded-lg bg-purple-500/20">
                   <Brain className="w-5 h-5 text-purple-500" />
                 </div>
-                <CardTitle className="text-muted-foreground text-sm">Highest AI Sentiment</CardTitle>
+                <CardTitle className="text-muted-foreground text-sm">Most Trending</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="relative space-y-4">
@@ -295,21 +316,31 @@ export default function AlphaLeague() {
                       className="w-12 h-12 rounded-xl object-cover"
                     />
                     <div>
-                      <p className="font-mono font-bold text-foreground text-lg">{highestSentiment.ticker}</p>
+                      <p className="font-mono font-bold text-foreground text-lg">{getTicker(highestSentiment.slug)}</p>
                       <p className="text-muted-foreground text-sm">{highestSentiment.name}</p>
                     </div>
                   </div>
-                  <p className="text-4xl font-mono font-bold text-purple-500">
-                    {highestSentiment.sentiment}/100
-                  </p>
-                  <p className="text-xs text-muted-foreground">Bullish Score</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-4xl font-mono font-bold text-purple-500">
+                      {highestSentiment.sentiment}
+                    </p>
+                    <span className={`text-sm px-2 py-0.5 rounded ${
+                      highestSentiment.sentimentTrend === 'up' ? 'bg-success/20 text-success' :
+                      highestSentiment.sentimentTrend === 'down' ? 'bg-destructive/20 text-destructive' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {highestSentiment.sentimentTrend === 'up' ? '↑ Rising' :
+                       highestSentiment.sentimentTrend === 'down' ? '↓ Falling' : '→ Stable'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Wikipedia Interest Score</p>
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full border-0 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20"
-                    onClick={() => navigate("/markets")}
+                    onClick={() => navigate(`/startup/${highestSentiment.slug}`)}
                   >
-                    Trade to Qualify
+                    Trade Now
                   </Button>
                 </>
               ) : (
@@ -330,17 +361,16 @@ export default function AlphaLeague() {
                 <TableRow className="border-b border-border hover:bg-transparent">
                   <TableHead className="text-muted-foreground font-mono">Rank</TableHead>
                   <TableHead className="text-muted-foreground">Asset Name</TableHead>
-                  <TableHead className="text-muted-foreground text-right font-mono">Current Price</TableHead>
-                  <TableHead className="text-muted-foreground text-right font-mono">7d Change</TableHead>
-                  <TableHead className="text-muted-foreground text-right font-mono">Sentiment</TableHead>
-                  <TableHead className="text-muted-foreground text-right font-mono">Est. Yield Boost</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">Price</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">24h Change</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">Trending</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">Score</TableHead>
+                  <TableHead className="text-muted-foreground text-right font-mono">Yield Boost</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {startups?.map((startup, index) => {
+                {rankedStartups.map((startup, index) => {
                   const yieldBoost = index < 3 ? "+15%" : index < 5 ? "+8%" : index < 10 ? "+3%" : "—";
-                  const sentimentScore = Math.floor(60 + Math.random() * 35);
-                  const priceChange = startup.price_change_24h || 0;
 
                   return (
                     <TableRow
@@ -354,7 +384,7 @@ export default function AlphaLeague() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <img
-                            src={startupLogos[startup.slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"]}
+                            src={getLogoUrl(startup.slug)}
                             alt={startup.name}
                             className="w-8 h-8 rounded-lg object-cover"
                           />
@@ -364,14 +394,24 @@ export default function AlphaLeague() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-mono text-foreground">
-                        ${startup.current_price.toFixed(2)}
+                      <TableCell className="text-right font-mono text-foreground tabular-nums">
+                        {formatUSD(startup.current_price)}
                       </TableCell>
-                      <TableCell className={`text-right font-mono ${priceChange >= 0 ? "text-success" : "text-destructive"}`}>
-                        {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(1)}%
+                      <TableCell className={`text-right font-mono tabular-nums ${startup.price_change_24h >= 0 ? "text-success" : "text-destructive"}`}>
+                        {startup.price_change_24h >= 0 ? "+" : ""}{formatPercent(startup.price_change_24h)}
                       </TableCell>
                       <TableCell className="text-right font-mono text-muted-foreground">
-                        {sentimentScore}/100
+                        <span className={`inline-flex items-center gap-1 ${
+                          startup.sentimentTrend === 'up' ? 'text-success' :
+                          startup.sentimentTrend === 'down' ? 'text-destructive' : ''
+                        }`}>
+                          {startup.sentiment}
+                          {startup.sentimentTrend === 'up' && '↑'}
+                          {startup.sentimentTrend === 'down' && '↓'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-purple-500 tabular-nums">
+                        {startup.score.toFixed(0)}
                       </TableCell>
                       <TableCell className={`text-right font-mono font-bold ${
                         index < 3 ? "text-primary" : index < 5 ? "text-blue-500" : index < 10 ? "text-purple-500" : "text-muted-foreground"

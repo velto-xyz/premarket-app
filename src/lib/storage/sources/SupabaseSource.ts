@@ -454,4 +454,27 @@ export class SupabaseSource {
       volume: stats.volume24h
     }
   }
+
+  // ============================================================================
+  // PLATFORM STATS
+  // ============================================================================
+
+  async getPlatformVolumeByDay(days: number = 30): Promise<{ day: string; volume: number }[]> {
+    const { data, error } = await supabase
+      .from('hourly_ohlcv')
+      .select('bucket, volume')
+      .gte('bucket', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
+      .order('bucket', { ascending: true })
+
+    if (error || !data) return []
+
+    // Aggregate by day
+    const volumeByDay: Record<string, number> = {}
+    for (const row of data) {
+      const day = new Date(row.bucket).toISOString().split('T')[0]
+      volumeByDay[day] = (volumeByDay[day] || 0) + Number(row.volume)
+    }
+
+    return Object.entries(volumeByDay).map(([day, volume]) => ({ day, volume }))
+  }
 }

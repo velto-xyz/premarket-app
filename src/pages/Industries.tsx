@@ -1,19 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { storage } from "@/lib/storage";
+import { StorageLayer } from "@/lib/storage/StorageLayer";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import * as Icons from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Button } from "@/components/ui/button";
 import { useMarketDataStream } from "@/hooks/useMarketDataStream";
-
-type TimeFrame = "1h" | "24h" | "7d" | "1m";
 
 export default function Industries() {
   const navigate = useNavigate();
-  const [timeframe, setTimeframe] = useState<TimeFrame>("24h");
 
   //  Industries still from Supabase (not migrated to storage layer yet)
   const { data: industries, isLoading } = useQuery({
@@ -40,64 +37,30 @@ export default function Industries() {
   // Stream real-time market data from contracts (polls every 3s)
   useMarketDataStream(markets);
 
-  // Transform to match component expectations
-  const startups = markets?.map(m => ({
-    id: m.id,
-    market_cap: m.marketCap
-  }));
-
+  // Calculate totals from markets
   const totalMarketCap = useMemo(() => {
-    if (!startups) return 0;
-    return startups.reduce((sum, startup) => sum + (Number(startup.market_cap) || 0), 0);
-  }, [startups]);
+    if (!markets) return 0;
+    return markets.reduce((sum, m) => sum + (Number(m.quoteReserve) || 0), 0);
+  }, [markets]);
 
-  const volumeData = useMemo(() => {
-    const now = Date.now();
-    const dataPoints: { time: string; volume: number }[] = [];
-    
-    let intervals: number, step: number, format: (date: Date) => string;
-    
-    switch (timeframe) {
-      case "1h":
-        intervals = 12;
-        step = 5 * 60 * 1000; // 5 minutes
-        format = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        break;
-      case "24h":
-        intervals = 24;
-        step = 60 * 60 * 1000; // 1 hour
-        format = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit' });
-        break;
-      case "7d":
-        intervals = 7;
-        step = 24 * 60 * 60 * 1000; // 1 day
-        format = (d) => d.toLocaleDateString('en-US', { weekday: 'short' });
-        break;
-      case "1m":
-        intervals = 30;
-        step = 24 * 60 * 60 * 1000; // 1 day
-        format = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        break;
-      default:
-        intervals = 24;
-        step = 60 * 60 * 1000;
-        format = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit' });
-    }
+  const totalVolume = useMemo(() => {
+    if (!markets) return 0;
+    return markets.reduce((sum, m) => sum + (Number(m.totalVolume) || 0), 0);
+  }, [markets]);
 
-    const baseVolume = 2500000;
-    
-    for (let i = 0; i < intervals; i++) {
-      const date = new Date(now - (intervals - i - 1) * step);
-      const variance = Math.random() * 0.4 + 0.8; // 0.8 to 1.2
-      const trend = 1 + (i / intervals) * 0.3; // gradual increase
-      dataPoints.push({
-        time: format(date),
-        volume: Math.round(baseVolume * variance * trend),
-      });
-    }
-    
-    return dataPoints;
-  }, [timeframe]);
+  // Fetch platform volume history
+  const { data: volumeData = [] } = useQuery({
+    queryKey: ["platform-volume-history"],
+    queryFn: async () => {
+      const storageLayer = new StorageLayer();
+      const data = await storageLayer['supabase'].getPlatformVolumeByDay(30);
+      return data.map(d => ({
+        time: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        volume: d.volume
+      }));
+    },
+    staleTime: 60000,
+  });
 
   if (isLoading) {
     return (
@@ -160,8 +123,8 @@ export default function Industries() {
             Platform <span className="text-gradient">Analytics</span>
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Total Startups */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Total Markets */}
             <Card className="glass border-border">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -169,8 +132,8 @@ export default function Industries() {
                     <Icons.Building2 className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Startups</p>
-                    <p className="text-3xl font-bold text-foreground">{startups?.length || 0}</p>
+                    <p className="text-sm text-muted-foreground">Total Markets</p>
+                    <p className="text-3xl font-bold text-foreground">{markets?.length || 0}</p>
                   </div>
                 </div>
               </CardContent>
@@ -185,8 +148,33 @@ export default function Industries() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Market Cap</p>
-                    <p className="text-3xl font-bold text-foreground">
-                      ${(totalMarketCap / 1000000000).toFixed(2)}B
+                    <p className="text-3xl font-bold tabular-nums text-foreground">
+                      ${totalMarketCap >= 1000000000
+                        ? `${(totalMarketCap / 1000000000).toFixed(2)}B`
+                        : totalMarketCap >= 1000000
+                        ? `${(totalMarketCap / 1000000).toFixed(2)}M`
+                        : totalMarketCap.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 24H Volume */}
+            <Card className="glass border-border">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Icons.BarChart3 className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">24H Volume</p>
+                    <p className="text-3xl font-bold tabular-nums text-foreground">
+                      ${totalVolume >= 1000000000
+                        ? `${(totalVolume / 1000000000).toFixed(2)}B`
+                        : totalVolume >= 1000000
+                        ? `${(totalVolume / 1000000).toFixed(2)}M`
+                        : totalVolume.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -197,80 +185,57 @@ export default function Industries() {
           {/* Trading Volume Chart */}
           <Card className="glass border-border">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-heading font-bold text-foreground">Trading Volume</h3>
-                  <p className="text-sm text-muted-foreground">Cumulative trading volume on Velto</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={timeframe === "1h" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTimeframe("1h")}
-                  >
-                    1h
-                  </Button>
-                  <Button
-                    variant={timeframe === "24h" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTimeframe("24h")}
-                  >
-                    24h
-                  </Button>
-                  <Button
-                    variant={timeframe === "7d" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTimeframe("7d")}
-                  >
-                    7d
-                  </Button>
-                  <Button
-                    variant={timeframe === "1m" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTimeframe("1m")}
-                  >
-                    1m
-                  </Button>
-                </div>
+              <div className="mb-6">
+                <h3 className="text-xl font-heading font-bold text-foreground">Trading Volume</h3>
+                <p className="text-sm text-muted-foreground">Daily trading volume (last 30 days)</p>
               </div>
-              
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={volumeData}>
-                  <defs>
-                    <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
-                    }}
-                    formatter={(value: number) => [`$${(value / 1000000).toFixed(2)}M`, 'Volume']}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="volume"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fill="url(#volumeGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+
+              {volumeData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={volumeData}>
+                    <defs>
+                      <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis
+                      dataKey="time"
+                      stroke="hsl(var(--muted-foreground))"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis
+                      stroke="hsl(var(--muted-foreground))"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                      formatter={(value: number) => [`$${(value / 1000000).toFixed(2)}M`, 'Volume']}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="volume"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      fill="url(#volumeGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <Icons.BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No volume data yet</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

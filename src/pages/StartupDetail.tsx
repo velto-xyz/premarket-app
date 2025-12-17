@@ -12,7 +12,7 @@ import LiquidationMonitor from "@/components/trading/LiquidationMonitor";
 import NewsTicker from "@/components/NewsTicker";
 import { startupLogos } from "@/assets/logos";
 import { getTicker } from "@/lib/tickers";
-import { formatUSD, formatCompact } from "@/lib/format";
+import { formatUSD, formatUSDWhole } from "@/lib/format";
 import { SupabaseSource } from "@/lib/storage/sources/SupabaseSource";
 import { useSync } from "@/hooks/useSync";
 
@@ -154,8 +154,8 @@ export default function StartupDetail() {
                     <div className="text-sm text-muted-foreground mb-1">
                       Market Cap
                     </div>
-                    <div className="text-2xl font-bold">
-                      ${formatCompact(startup.market_cap || 0)}
+                    <div className="text-2xl font-bold tabular-nums">
+                      {formatUSDWhole(startup.market_cap || 0)}
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-card border border-border shadow-sm">

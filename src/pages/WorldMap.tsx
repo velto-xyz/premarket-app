@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { storage } from "@/lib/storage";
+import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Map, { MapRef } from "@/components/Map";
@@ -9,29 +9,47 @@ import { useNavigate } from "react-router-dom";
 import { startupLogos } from "@/assets/logos";
 import { useState, useRef } from "react";
 import { getTicker } from "@/lib/tickers";
+import { formatUSD, formatPercent } from "@/lib/format";
+import { useMarketDataStream } from "@/hooks/useMarketDataStream";
 
 export default function WorldMap() {
   const navigate = useNavigate();
   const mapRef = useRef<MapRef>(null);
   const [selectedStartupId, setSelectedStartupId] = useState<string | null>(null);
   
-  const { data: startups, isLoading } = useQuery({
-    queryKey: ["startups-map"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("startups")
-        .select("id, name, slug, hq_location, hq_latitude, hq_longitude, unicorn_color, industries(name)")
-        .order("name");
+  // Fetch markets from storage layer (includes real price data)
+  // Uses same query key as Markets page so useMarketDataStream updates work
+  const { data: markets, isLoading } = useQuery({
+    queryKey: ["all-markets"],
+    queryFn: async () => storage.getAllMarkets(),
+  });
 
-      if (error) throw error;
-      // Add placeholder price data - real prices come from contracts
-      return data?.map(s => ({
-        ...s,
-        current_price: 0,
-        price_change_24h: 0
-      }));
+  // Fetch industries for display names
+  const { data: industries } = useQuery({
+    queryKey: ["industries"],
+    queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.from("industries").select("*").order("name");
+      return data;
     },
   });
+
+  // Stream real-time market data from contracts
+  useMarketDataStream(markets);
+
+  // Transform to startup format for Map component
+  const startups = markets?.map(m => ({
+    id: m.id,
+    name: m.name,
+    slug: m.slug,
+    hq_location: m.hqLocation,
+    hq_latitude: m.hqLatitude,
+    hq_longitude: m.hqLongitude,
+    unicorn_color: m.unicornColor,
+    current_price: m.currentPrice,
+    price_change_24h: m.priceChange24h,
+    industries: industries?.find(ind => ind.id === m.industryId),
+  }));
 
   if (isLoading) {
     return (
@@ -122,19 +140,19 @@ export default function WorldMap() {
                         
                         <div className="grid grid-cols-2 gap-4 pt-2">
                           <div className="text-center">
-                            <div className="text-xl font-bold text-foreground">
-                              ${startup.current_price}
+                            <div className="text-xl font-bold text-foreground tabular-nums">
+                              {formatUSD(startup.current_price)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               Current Price
                             </div>
                           </div>
                           <div className="text-center">
-                            <div className={`text-xl font-bold ${(startup.price_change_24h ?? 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                              {(startup.price_change_24h ?? 0) >= 0 ? '+' : ''}{(startup.price_change_24h ?? 0).toFixed(2)}%
+                            <div className={`text-xl font-bold tabular-nums ${(startup.price_change_24h ?? 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                              {(startup.price_change_24h ?? 0) >= 0 ? '+' : ''}{formatPercent(startup.price_change_24h ?? 0)}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Performance
+                              24h Change
                             </div>
                           </div>
                         </div>
