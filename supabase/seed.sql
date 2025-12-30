@@ -1,9 +1,12 @@
 -- Seed Industries
 INSERT INTO public.industries (name, slug, description, icon_name) VALUES
-  ('Space', 'space', 'Space exploration and aerospace technology', 'Rocket'),
-  ('FinTech', 'fintech', 'Financial Technology startups revolutionizing banking and payments', 'Wallet'),
-  ('BioTech', 'biotech', 'Biotechnology companies advancing healthcare and medicine', 'Dna'),
-  ('Robotics', 'robotics', 'Robotics companies building intelligent machines', 'Bot'),
-  ('Automotive', 'automotive', 'Next-generation automotive and mobility solutions', 'Car'),
-  ('IoT', 'iot', 'Internet of Things startups connecting the physical world', 'Wifi')
-ON CONFLICT (slug) DO NOTHING;
+  ('Foundation', 'foundation', 'The "Brains" / LLM Builders', 'Brain'),
+  ('Infra', 'infra', 'Chips, Cloud, Data, & DevTools', 'Cpu'),
+  ('Creative', 'creative', 'Audio, Video, & Art generation', 'Palette'),
+  ('Consumer', 'consumer', 'Search, Social, & Personal Assistants', 'Smartphone'),
+  ('Enterprise', 'enterprise', 'B2B, Defense, Coding, & Legal', 'Briefcase'),
+  ('Robotics', 'robotics', 'Physical AI & Humanoids', 'Bot')
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  icon_name = EXCLUDED.icon_name;
