@@ -154,7 +154,7 @@ export default function StartupDetail() {
                     <div className="text-sm text-muted-foreground mb-1">
                       Market Cap
                     </div>
-                    <div className="text-2xl font-bold tabular-nums">
+                    <div className="text-2xl font-bold font-mono tabular-nums">
                       {formatUSDWhole(startup.market_cap || 0)}
                     </div>
                   </div>
@@ -163,7 +163,7 @@ export default function StartupDetail() {
                       24h Change
                     </div>
                     <div
-                      className={`text-2xl font-bold flex items-center gap-2 ${isPositive ? "text-success" : "text-destructive"
+                      className={`text-2xl font-bold font-mono flex items-center gap-2 ${isPositive ? "text-success" : "text-destructive"
                         }`}
                     >
                       {isPositive ? (
@@ -179,7 +179,7 @@ export default function StartupDetail() {
                     <div className="text-sm text-muted-foreground mb-1">
                       Year Founded
                     </div>
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold font-mono">
                       {startup.year_founded || 'N/A'}
                     </div>
                   </div>

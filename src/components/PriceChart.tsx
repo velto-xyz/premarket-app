@@ -48,8 +48,8 @@ export default function PriceChart({
       ? "#10b981"
       : "#16A34A"
     : isDark
-    ? "#ef4444"
-    : "#EA580C";
+      ? "#ef4444"
+      : "#EA580C";
 
   // Transform price points to chart data
   const chartData = (priceData?.points || []).map((point) => ({
@@ -85,11 +85,10 @@ export default function PriceChart({
           <div className="text-sm text-muted-foreground mb-1">
             {startupName} Price
           </div>
-          <div className="text-4xl font-bold">{formatUSD(currentPrice)}</div>
+          <div className="text-4xl font-bold font-mono">{formatUSD(currentPrice)}</div>
           <div
-            className={`flex items-center gap-2 mt-2 text-lg font-medium ${
-              isPositive ? "text-success" : "text-destructive"
-            }`}
+            className={`flex items-center gap-2 mt-2 text-lg font-bold font-mono ${isPositive ? "text-success" : "text-destructive"
+              }`}
           >
             {isPositive ? (
               <TrendingUp className="w-5 h-5" />
@@ -153,7 +152,7 @@ export default function PriceChart({
               <XAxis
                 dataKey="time"
                 stroke="hsl(var(--muted-foreground))"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
                 tickLine={false}
               />
               <YAxis
@@ -162,7 +161,7 @@ export default function PriceChart({
                   maxPrice + priceRange * 0.1,
                 ]}
                 stroke="hsl(var(--muted-foreground))"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
                 tickLine={false}
                 width={60}
                 tickFormatter={(value) => `$${value.toFixed(2)}`}
@@ -197,19 +196,19 @@ export default function PriceChart({
       <div className="grid grid-cols-3 gap-4">
         <div className="p-3 rounded-lg bg-background/30 border border-border">
           <div className="text-xs text-muted-foreground mb-1">{timeframe} High</div>
-          <div className="text-lg font-bold">
+          <div className="text-lg font-bold font-mono">
             {displayHigh > 0 ? formatUSD(displayHigh) : "-"}
           </div>
         </div>
         <div className="p-3 rounded-lg bg-background/30 border border-border">
           <div className="text-xs text-muted-foreground mb-1">{timeframe} Low</div>
-          <div className="text-lg font-bold">
+          <div className="text-lg font-bold font-mono">
             {displayLow > 0 ? formatUSD(displayLow) : "-"}
           </div>
         </div>
         <div className="p-3 rounded-lg bg-background/30 border border-border">
           <div className="text-xs text-muted-foreground mb-1">{timeframe} Volume</div>
-          <div className="text-lg font-bold">
+          <div className="text-lg font-bold font-mono">
             {stats.volume > 0 ? formatUSD(stats.volume) : "-"}
           </div>
         </div>

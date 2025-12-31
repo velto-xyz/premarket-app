@@ -88,7 +88,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title} className="mb-2">
+                <SidebarMenuItem key={item.title} className="mb-3">
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
