@@ -1,3 +1,5 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,28 +27,39 @@
   :root {
     /* Light Mode - Premium Organic Silver Theme */
 
-    /* Background - Soft teal-silver gradient base */
-    --background: 193 50% 95%;
-    --foreground: 196 38% 16%;
+    /* Background - Pure White */
+    --background: 0 0% 100%;
+    --foreground: 227 92% 5%;
+    /* #010618 (content-primary) */
+
+    /* Typography - Single Source of Truth */
+    --font-sans: "Satoshi", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-heading: "Satoshi", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
 
     /* Surface/Cards - Pure white with soft shadows */
     --card: 0 0% 100%;
-    --card-foreground: 196 38% 16%;
+    --card-foreground: 227 92% 5%;
+    /* #010618 (content-primary) */
 
     /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 196 38% 16%;
+    --popover-foreground: 227 92% 5%;
+    /* #010618 (content-primary) */
 
-    /* Primary - Professional Teal (adjusted from original) */
-    --primary: 186 100% 40%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary - Brand Accent Green (#2DE18E) */
+    --primary: 152 75% 53%;
+    --primary-foreground: 227 92% 5%;
+    /* #010618 (content-primary) */
 
-    /* Secondary - Warm Orange (Bearish/Short) */
-    --secondary: 18 93% 48%;
+    /* Secondary - Professional Blue-Gray (#5E7690) */
+    --secondary: 211 21% 47%;
     --secondary-foreground: 0 0% 100%;
+    --secondary-soft: 215 39% 92%;
+    /* #E1E8F2 */
 
-    /* Muted - Teal-slate gray */
-    --muted: 195 30% 90%;
+    /* Muted - Soft blue-gray */
+    --muted: 220 33% 98%;
     --muted-foreground: 196 17% 47%;
 
     /* Accent - Professional Purple (AI/Neutral) */
@@ -57,48 +70,53 @@
     --destructive: 18 93% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success - Professional Green */
-    --success: 142 76% 36%;
+    /* Success - Brand Green (Accessible for text) #17A161 */
+    --success: 152 75% 36%;
     --success-foreground: 0 0% 100%;
 
-    /* Border & Input - Soft cyan-gray */
-    --border: 193 33% 87%;
-    --input: 193 33% 87%;
-    --ring: 186 100% 40%;
+    /* Border & Input - Soft blue-gray (#E1E8F2) */
+    --border: 217 44% 92%;
+    --input: 217 44% 92%;
+    --ring: 152 75% 53%;
+    --border-default: 217 44% 92%;
+    /* #E1E8F2 */
 
     /* Chart colours */
-    --chart-1: 186 100% 40%;
+    --chart-1: 152 75% 53%;
     --chart-2: 18 93% 48%;
     --chart-3: 265 79% 58%;
-    --chart-4: 186 100% 30%;
+    --chart-4: 152 75% 40%;
 
-    /* Gradients - Organic teal-to-silver transitions */
-    --gradient-primary: linear-gradient(135deg, hsl(186 100% 40%) 0%, hsl(193 50% 70%) 100%);
+    /* Gradients - Brand Green transitions */
+    --gradient-primary: linear-gradient(135deg, hsl(152 75% 53%) 0%, hsl(152 75% 40%) 100%);
     --gradient-bearish: linear-gradient(135deg, hsl(18 93% 48%) 0%, hsl(18 93% 38%) 100%);
     --gradient-ai: linear-gradient(135deg, hsl(265 79% 58%) 0%, hsl(265 79% 48%) 100%);
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(195 67% 97%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(220 33% 98%) 100%);
 
-    /* Shadows - Soft elevation with teal tint */
-    --shadow-elevation-sm: 0 1px 3px hsl(186 100% 40% / 0.08), 0 1px 2px hsl(0 0% 0% / 0.06);
-    --shadow-elevation-md: 0 2px 8px hsl(186 100% 40% / 0.1), 0 2px 4px hsl(0 0% 0% / 0.06);
-    --shadow-elevation-lg: 0 4px 12px hsl(186 100% 40% / 0.12), 0 4px 8px hsl(0 0% 0% / 0.08);
-    --shadow-primary: 0 2px 8px hsl(186 100% 40% / 0.15);
+    /* Shadows - Soft elevation with brand tint */
+    --shadow-elevation-sm: 0 1px 3px hsl(152 75% 53% / 0.08), 0 1px 2px hsl(0 0% 0% / 0.06);
+    --shadow-elevation-md: 0 2px 8px hsl(152 75% 53% / 0.1), 0 2px 4px hsl(0 0% 0% / 0.06);
+    --shadow-elevation-lg: 0 4px 12px hsl(152 75% 53% / 0.12), 0 4px 8px hsl(0 0% 0% / 0.08);
+    --shadow-primary: 0 2px 8px hsl(152 75% 53% / 0.15);
     --shadow-secondary: 0 2px 8px hsl(18 93% 48% / 0.15);
     --shadow-accent: 0 2px 8px hsl(265 79% 58% / 0.15);
     --shadow-card: 0 2px 12px hsl(193 33% 87% / 0.4);
 
     /* Terminal radius - Sharp, squared-off */
-    --radius: 0.375rem;
+    --radius: 1.5rem;
 
-    /* Sidebar */
-    --sidebar-background: 195 67% 97%;
-    --sidebar-foreground: 196 38% 16%;
-    --sidebar-primary: 186 100% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 195 30% 90%;
+    /* Sidebar - Light Gray-Blue (#F9FAFC) */
+    --sidebar-background: 220 33% 98%;
+    --sidebar-foreground: 227 92% 5%;
+    /* #010618 (content-primary) */
+    --sidebar-primary: 152 75% 53%;
+    --sidebar-primary-foreground: 227 92% 5%;
+    /* #010618 (content-primary) */
+    --sidebar-accent: 220 33% 96%;
     --sidebar-accent-foreground: 196 38% 16%;
-    --sidebar-border: 193 33% 87%;
-    --sidebar-ring: 186 100% 40%;
+    --sidebar-border: 217 44% 92%;
+    /* #E1E8F2 */
+    --sidebar-ring: 152 75% 53%;
   }
 
   .dark {
@@ -116,15 +134,18 @@
     --popover: 0 0% 4%;
     --popover-foreground: 0 0% 93%;
 
-    /* Primary - Electric Teal (Bullish/Long) */
-    --primary: 186 100% 50%;
+    /* Primary - Electric Green (#2DE18E) */
+    --primary: 152 75% 53%;
     --primary-foreground: 0 0% 0%;
 
-    /* Secondary - Sharp Orange (Bearish/Short) */
-    --secondary: 18 100% 50%;
+    /* Secondary - Professional Blue-Gray (#5E7690) */
+    --secondary: 211 21% 55%;
+    /* Slightly lighter for dark mode visibility */
     --secondary-foreground: 0 0% 0%;
+    --secondary-soft: 211 21% 15%;
+    /* Muted version for dark mode */
 
-    /* Muted - Cool Grey */
+    /* Muted - Charcoal */
     --muted: 0 0% 8%;
     --muted-foreground: 0 0% 53%;
 
@@ -136,32 +157,32 @@
     --destructive: 18 100% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success - Bright Green (Bullish/Uptrend) */
-    --success: 142 76% 45%;
+    /* Success - Brand Green (Accessible for text) */
+    --success: 152 75% 45%;
     --success-foreground: 0 0% 100%;
 
     /* Border & Input - Subtle white borders */
     --border: 0 0% 100% / 0.08;
     --input: 0 0% 100% / 0.08;
-    --ring: 186 100% 50%;
+    --ring: 152 75% 53%;
 
     /* Chart colours */
-    --chart-1: 186 100% 50%;
+    --chart-1: 152 75% 53%;
     --chart-2: 18 100% 50%;
     --chart-3: 265 100% 76%;
-    --chart-4: 186 100% 40%;
+    --chart-4: 152 75% 40%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(186 100% 50%) 0%, hsl(186 100% 40%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(152 75% 53%) 0%, hsl(152 75% 40%) 100%);
     --gradient-bearish: linear-gradient(135deg, hsl(18 100% 50%) 0%, hsl(18 100% 40%) 100%);
     --gradient-ai: linear-gradient(135deg, hsl(265 100% 76%) 0%, hsl(265 100% 60%) 100%);
     --gradient-card: linear-gradient(135deg, hsl(0 0% 4%) 0%, hsl(0 0% 3%) 100%);
 
-    /* Shadows - Neon glowing effects */
-    --shadow-elevation-sm: 0 4px 16px hsl(186 100% 50% / 0.2);
-    --shadow-elevation-md: 0 4px 20px hsl(186 100% 50% / 0.25);
-    --shadow-elevation-lg: 0 6px 30px hsl(186 100% 50% / 0.3);
-    --shadow-primary: 0 4px 20px hsl(186 100% 50% / 0.3);
+    /* Shadows - Glowing effects with brand tint */
+    --shadow-elevation-sm: 0 4px 16px hsl(152 75% 53% / 0.2);
+    --shadow-elevation-md: 0 4px 20px hsl(152 75% 53% / 0.25);
+    --shadow-elevation-lg: 0 6px 30px hsl(152 75% 53% / 0.3);
+    --shadow-primary: 0 4px 20px hsl(152 75% 53% / 0.3);
     --shadow-secondary: 0 4px 20px hsl(18 100% 50% / 0.3);
     --shadow-accent: 0 4px 20px hsl(265 100% 76% / 0.3);
     --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.4);
@@ -169,12 +190,12 @@
     /* Sidebar */
     --sidebar-background: 0 0% 3%;
     --sidebar-foreground: 0 0% 93%;
-    --sidebar-primary: 186 100% 50%;
+    --sidebar-primary: 152 75% 53%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 8%;
     --sidebar-accent-foreground: 0 0% 93%;
     --sidebar-border: 0 0% 100% / 0.08;
-    --sidebar-ring: 186 100% 50%;
+    --sidebar-ring: 152 75% 53%;
   }
 }
 

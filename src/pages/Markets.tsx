@@ -20,9 +20,13 @@ import { useSentiments } from "@/hooks/useSentiment";
 export default function Markets() {
   const navigate = useNavigate();
   const { industrySlug } = useParams();
+
+  // --- UI State ---
   const [selectedIndustry, setSelectedIndustry] = useState<string>("all");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name");
+
+  // --- Data Fetching ---
 
   // Industries still from Supabase directly (not in storage layer yet)
   const { data: industries } = useQuery({
@@ -145,7 +149,7 @@ export default function Markets() {
     return Array.from(uniqueRegions).sort();
   }, [startups]);
 
-  // Filter and sort startups
+  // --- Filtering & Sorting Logic ---
   const filteredAndSortedStartups = useMemo(() => {
     if (!startups) return [];
 
@@ -204,8 +208,10 @@ export default function Markets() {
   return (
     <AppLayout>
       <div className="container mx-auto p-8">
+
+        {/* === Header Section === */}
         <div className="mb-8">
-          <h1 className="text-6xl font-heading font-bold mb-2 text-foreground">
+          <h1 className="text-6xl font-heading font-bold mb-4 text-foreground">
             <span className="text-foreground">Trade AI Startups</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-[520px]">
@@ -213,44 +219,52 @@ export default function Markets() {
           </p>
         </div>
 
-        {/* Analytics Overview Section */}
+        {/* === Analytics Overview Grid === */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-12">
           {/* Column 1: Top Gainer */}
           <Card className="glass border-border relative overflow-hidden group h-full flex flex-col justify-between">
-            <CardHeader className="p-5 pb-0 relative">
-              <CardTitle className="text-muted-foreground text-xs uppercase tracking-wider">Top Gainer</CardTitle>
+            <CardHeader className="p-6 pb-2 relative">
+              <CardTitle className="text-muted-foreground text-sm font-normal">Top Gainer</CardTitle>
             </CardHeader>
-            <CardContent className="p-5 pt-5 relative">
+            <CardContent className="p-6 pt-2 h-full flex flex-col justify-between relative">
               {topGainer ? (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={getLogoUrl(topGainer.slug)}
-                        alt={topGainer.name}
-                        className="w-16 h-16 rounded-xl object-cover border border-white/[0.08]"
-                      />
-                      <div>
-                        <p className="font-mono font-bold text-foreground text-lg">{getTicker(topGainer.slug)}</p>
-                        <p className="text-muted-foreground text-sm truncate max-w-[120px]">{topGainer.name}</p>
+                <>
+                  <div className="flex items-start gap-4 mb-6">
+                    <img
+                      src={getLogoUrl(topGainer.slug)}
+                      alt={topGainer.name}
+                      className="w-12 h-12 rounded-xl object-cover"
+                    />
+                    <div>
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="font-bold text-foreground text-lg">{topGainer.name}</h3>
+                        <span className="text-muted-foreground font-mono text-sm">{getTicker(topGainer.slug)}</span>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-3xl font-mono font-bold ${topGainer.price_change_24h >= 0 ? 'text-success' : 'text-destructive'}`}>
-                        {topGainer.price_change_24h >= 0 ? '+' : ''}{formatPercent(topGainer.price_change_24h)}
-                      </p>
-                      <p className="text-xs text-muted-foreground uppercase">24h Change</p>
+                      {topGainer.industries?.name && (
+                        <Badge variant="secondary" className="mt-1 font-normal text-xs">
+                          {topGainer.industries.name}
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full transition-all rounded-lg border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-                    onClick={() => navigate(`/startup/${topGainer.slug}`)}
-                  >
-                    Trade Now <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
+
+                  <div className="flex items-end justify-between mt-auto">
+                    <div>
+                      <p className={`text-4xl font-mono font-bold ${topGainer.price_change_24h >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {topGainer.price_change_24h >= 0 ? '+' : ''}{formatPercent(topGainer.price_change_24h)}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">24h Price Change</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full bg-muted/50 hover:bg-muted h-10 w-10 shrink-0"
+                      onClick={() => navigate(`/startup/${topGainer.slug}`)}
+                    >
+                      <Icons.ArrowRight className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <div className="text-muted-foreground text-center py-4">Scanning markets...</div>
               )}
@@ -259,56 +273,61 @@ export default function Markets() {
 
           {/* Column 2: Most Liquid */}
           <Card className="glass border-border relative overflow-hidden group h-full flex flex-col justify-between">
-            <CardHeader className="p-5 pb-0 relative">
-              <CardTitle className="text-muted-foreground text-xs uppercase tracking-wider">Most Liquid</CardTitle>
+            <CardHeader className="p-6 pb-2 relative">
+              <CardTitle className="text-muted-foreground text-sm font-normal">Most Traded</CardTitle>
             </CardHeader>
-            <CardContent className="p-5 pt-5 relative">
+            <CardContent className="p-6 pt-2 h-full flex flex-col justify-between relative">
               {mostLiquid ? (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={getLogoUrl(mostLiquid.slug)}
-                        alt={mostLiquid.name}
-                        className="w-16 h-16 rounded-xl object-cover border border-white/[0.08]"
-                      />
-                      <div>
-                        <p className="font-mono font-bold text-foreground text-lg">{getTicker(mostLiquid.slug)}</p>
-                        <p className="text-muted-foreground text-sm truncate max-w-[120px]">{mostLiquid.name}</p>
+                <>
+                  <div className="flex items-start gap-4 mb-6">
+                    <img
+                      src={getLogoUrl(mostLiquid.slug)}
+                      alt={mostLiquid.name}
+                      className="w-12 h-12 rounded-xl object-cover"
+                    />
+                    <div>
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="font-bold text-foreground text-lg">{mostLiquid.name}</h3>
+                        <span className="text-muted-foreground font-mono text-sm">{getTicker(mostLiquid.slug)}</span>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-mono font-bold text-foreground">
-                        {formatCompactUSD(mostLiquid.volume_24h)}
-                      </p>
-                      <p className="text-xs text-muted-foreground uppercase">24h Volume</p>
+                      {mostLiquid.industries?.name && (
+                        <Badge variant="secondary" className="mt-1 font-normal text-xs">
+                          {mostLiquid.industries.name}
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full transition-all rounded-lg border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-                    onClick={() => navigate(`/startup/${mostLiquid.slug}`)}
-                  >
-                    Trade Now <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
+
+                  <div className="flex items-end justify-between mt-auto">
+                    <div>
+                      <p className="text-4xl font-mono font-bold text-foreground">
+                        {formatCompactUSD(mostLiquid.volume_24h)}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">24h Volume</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full bg-muted/50 hover:bg-muted h-10 w-10 shrink-0"
+                      onClick={() => navigate(`/startup/${mostLiquid.slug}`)}
+                    >
+                      <Icons.ArrowRight className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <div className="text-muted-foreground text-center py-4">Scanning markets...</div>
               )}
             </CardContent>
           </Card>
 
-          {/* Column 3: Stats Stacked */}
+          {/* Column 3: Market Stats Stacked */}
           <div className="flex flex-col gap-3">
             <Card className="glass border-border flex-1">
               <CardContent className="p-5 flex items-center h-full">
                 <div className="flex items-center gap-4 w-full">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <DollarSign className="w-6 h-6 text-primary" />
-                  </div>
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Market Cap</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider pb-2">Total Market Cap</p>
                     <p className="text-3xl font-bold font-mono text-foreground">
                       {formatCompactUSD(totalMarketCap)}
                     </p>
@@ -320,11 +339,9 @@ export default function Markets() {
             <Card className="glass border-border flex-1">
               <CardContent className="p-5 flex items-center h-full">
                 <div className="flex items-center gap-4 w-full">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BarChart3 className="w-6 h-6 text-primary" />
-                  </div>
+
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">24H Volume</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider pb-2">24H Volume</p>
                     <p className="text-3xl font-bold font-mono text-foreground">
                       {formatCompactUSD(totalVolume)}
                     </p>
@@ -337,36 +354,36 @@ export default function Markets() {
 
         <h2 className="text-2xl font-heading font-bold mb-6 text-foreground">Startups Market</h2>
 
-        {/* Category Filter Cards */}
-        {/* Category Filter Cards */}
+        {/* === Category Filter Cards === */}
         <div className="flex overflow-x-auto pb-4 gap-3 mb-8 -mx-4 px-4 scrollbar-hide snap-x">
           {/* All Categories Card */}
           <Card
             className={`group cursor-pointer transition-all duration-300 overflow-hidden w-[160px] h-[160px] shrink-0 ${selectedIndustry === "all"
-              ? "border-primary bg-primary/10 glow"
-              : "border-border hover:border-primary glass hover:glow"
+              ? "border-foreground bg-muted"
+              : "border-border hover:border-foreground hover:bg-muted glass"
               }`}
             onClick={() => setSelectedIndustry("all")}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <CardContent className="p-4 relative h-full flex flex-col items-center justify-center text-center">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300 ${selectedIndustry === "all"
-                ? "bg-primary"
-                : "bg-muted/40 group-hover:bg-primary group-hover:scale-110"
+                ? "bg-foreground"
+                : "bg-transparent group-hover:bg-transparent group-hover:scale-110"
                 }`}>
-                <Icons.LayoutGrid className={`w-6 h-6 transition-colors ${selectedIndustry === "all"
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground/70 group-hover:text-primary-foreground"
-                  }`} />
+                <Icons.LayoutGrid
+                  strokeWidth={1.5}
+                  className={`w-8 h-8 transition-colors ${selectedIndustry === "all"
+                    ? "text-background"
+                    : "text-muted-foreground/70 group-hover:text-foreground"
+                    }`}
+                />
               </div>
               <div className="space-y-1">
-                <h3 className={`text-base font-heading font-bold transition-colors ${selectedIndustry === "all" ? "text-primary" : "group-hover:text-primary"
+                <h3 className={`text-base font-heading transition-colors ${selectedIndustry === "all"
+                  ? "text-foreground font-bold"
+                  : "text-content-secondary font-medium group-hover:text-foreground"
                   }`}>
-                  All
+                  All Startups
                 </h3>
-                <p className="text-muted-foreground text-[12px] leading-tight px-1">
-                  All available startups
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -382,24 +399,28 @@ export default function Markets() {
               <Card
                 key={industry.id}
                 className={`group cursor-pointer transition-all duration-300 overflow-hidden w-[160px] h-[160px] shrink-0 ${isSelected
-                  ? "border-primary bg-primary/10 glow"
-                  : "border-border hover:border-primary glass hover:glow"
+                  ? "border-foreground bg-muted"
+                  : "border-border hover:border-foreground hover:bg-muted glass"
                   }`}
                 onClick={() => setSelectedIndustry(industry.id)}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 <CardContent className="p-4 relative h-full flex flex-col items-center justify-center text-center">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300 ${isSelected
-                    ? "bg-primary"
-                    : "bg-muted/40 group-hover:bg-primary group-hover:scale-110"
+                    ? "bg-foreground"
+                    : "bg-transparent group-hover:bg-transparent group-hover:scale-110"
                     }`}>
-                    <IconComponent className={`w-6 h-6 transition-colors ${isSelected
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground/70 group-hover:text-primary-foreground"
-                      }`} />
+                    <IconComponent
+                      strokeWidth={1.5}
+                      className={`w-8 h-8 transition-colors ${isSelected
+                        ? "text-background"
+                        : "text-muted-foreground/70 group-hover:text-foreground"
+                        }`}
+                    />
                   </div>
                   <div className="space-y-1">
-                    <h3 className={`text-base font-heading font-bold transition-colors ${isSelected ? "text-primary" : "group-hover:text-primary"
+                    <h3 className={`text-base font-heading transition-colors ${isSelected
+                      ? "text-foreground font-bold"
+                      : "text-content-secondary font-medium group-hover:text-foreground"
                       }`}>
                       {industry.name}
                     </h3>
@@ -413,7 +434,7 @@ export default function Markets() {
           })}
         </div>
 
-        {/* Filters and Sorting */}
+        {/* === Table Controls: Filters & Sorting === */}
         <div className="mb-8 flex flex-wrap items-center justify-between">
           <div className="text-sm text-muted-foreground font-medium uppercase tracking-wider">
             <span className="font-mono">{filteredAndSortedStartups.length}</span> {filteredAndSortedStartups.length === 1 ? 'startup' : 'startups'}
@@ -451,6 +472,7 @@ export default function Markets() {
           </div>
         </div>
 
+        {/* === Main Startup List === */}
         <div className="space-y-4">
           {filteredAndSortedStartups.map((startup) => {
             const isPositive = (startup.price_change_24h || 0) >= 0;
@@ -498,7 +520,7 @@ export default function Markets() {
                         </div>
                       )}
 
-                      {/* Sparkline */}
+                      {/* 7-Day Sparkline Graph */}
                       <div className="w-28 h-12">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart

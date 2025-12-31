@@ -1,7 +1,7 @@
 import { LayoutDashboard, TrendingUp, Globe, Briefcase, Brain, LogOut, Trophy } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate, Link } from "react-router-dom";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectWallet } from "@/components/ConnectWallet";
 import {
   Sidebar,
   SidebarContent,
@@ -47,17 +47,22 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-border glass"
+      className="border-r border-border"
     >
+      {/* Sidebar Header: Logo and App Name */}
       <SidebarHeader className="border-b border-border p-4">
         <Link to="/portfolio" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center shadow-primary">
-            <span className="text-primary-foreground font-bold text-lg font-mono">V</span>
-          </div>
-          {!isCollapsed && <span className="text-xl font-bold text-foreground tracking-tight">Velto</span>}
+          {isCollapsed ? (
+            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center shadow-primary">
+              <span className="text-primary-foreground font-bold text-lg font-mono">V</span>
+            </div>
+          ) : (
+            <span className="text-3xl font-bold text-foreground tracking-tight">Velto</span>
+          )}
         </Link>
       </SidebarHeader>
 
+      {/* Sidebar Content: Main Navigation Menu */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -82,15 +87,12 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Sidebar Footer: Wallet, Theme, and Log Out */}
       <SidebarFooter className="border-t border-border p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <div className={isCollapsed ? "flex justify-center" : "px-2 py-1"}>
-              <ConnectButton
-                showBalance={false}
-                chainStatus={isCollapsed ? "none" : "icon"}
-                accountStatus={isCollapsed ? "avatar" : "address"}
-              />
+              <ConnectWallet isCollapsed={isCollapsed} />
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -108,6 +110,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
 
+      {/* Sidebar Trigger: Collapse button */}
       <SidebarTrigger className="m-2 self-end text-muted-foreground hover:text-foreground" />
     </Sidebar>
   );
