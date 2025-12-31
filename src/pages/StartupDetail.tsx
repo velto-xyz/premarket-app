@@ -3,7 +3,7 @@ import { storage } from "@/lib/storage";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, MapPin } from "lucide-react";
+import { ChartIncreaseIcon, ChartDecreaseIcon, Location01Icon } from "@/components/icons";
 import { AppLayout } from "@/components/layout/AppLayout";
 import PriceChart from "@/components/PriceChart";
 import TradingPanel from "@/components/trading/TradingPanel";
@@ -109,19 +109,19 @@ export default function StartupDetail() {
     <AppLayout>
       {/* Bloomberg-style News Ticker */}
       <NewsTicker startupSlug={startup.slug} startupName={startup.name} />
-      
+
       <div className="container mx-auto p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Header */}
-            <Card className="glass border-border">
+            <Card className="bg-transparent border-none shadow-none">
               <CardContent className="p-8">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-6">
                     <div className="w-20 h-20 rounded-2xl bg-background flex items-center justify-center p-2">
-                      <img 
-                        src={startupLogos[startup.slug]} 
+                      <img
+                        src={startupLogos[startup.slug]}
                         alt={`${startup.name} logo`}
                         className="w-full h-full object-contain"
                       />
@@ -134,7 +134,7 @@ export default function StartupDetail() {
                         </h1>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
+                        <Location01Icon size={16} strokeWidth={1.5} />
                         <span>{startup.hq_location}</span>
                       </div>
                     </div>
@@ -163,14 +163,13 @@ export default function StartupDetail() {
                       24h Change
                     </div>
                     <div
-                      className={`text-2xl font-bold flex items-center gap-2 ${
-                        isPositive ? "text-success" : "text-destructive"
-                      }`}
+                      className={`text-2xl font-bold flex items-center gap-2 ${isPositive ? "text-success" : "text-destructive"
+                        }`}
                     >
                       {isPositive ? (
-                        <TrendingUp className="w-5 h-5" />
+                        <ChartIncreaseIcon size={20} className="w-5 h-5" strokeWidth={1.5} />
                       ) : (
-                        <TrendingDown className="w-5 h-5" />
+                        <ChartDecreaseIcon size={20} className="w-5 h-5" strokeWidth={1.5} />
                       )}
                       {isPositive ? "+" : ""}
                       {(startup.price_change_24h || 0).toFixed(2)}%

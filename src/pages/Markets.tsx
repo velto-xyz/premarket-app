@@ -6,8 +6,32 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Filter, Sparkles, BarChart3, Brain, DollarSign, ChevronRight } from "lucide-react";
+import { TrendingUp as LucideTrendingUp, Filter, Sparkles, BarChart3, Brain, DollarSign, ChevronRight } from "lucide-react";
 import * as Icons from "lucide-react";
+import {
+  ChartIncreaseIcon,
+  AiImageIcon,
+  MenuSquareIcon,
+  ChartDecreaseIcon,
+  Layout01Icon,
+  ArrowRight01Icon,
+  SparklesIcon,
+  Activity01Icon,
+  CpuIcon,
+  ZapIcon,
+  Factory02Icon,
+  Globe02Icon,
+  Leaf01Icon,
+  Rocket01Icon,
+  ServerStack02Icon,
+  Database01Icon,
+  BankIcon,
+  SmartPhone01Icon,
+  PaintBoardIcon,
+  Building03Icon,
+  Layers01Icon,
+  Robot01Icon
+} from "@/components/icons";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +40,40 @@ import { getTicker } from "@/lib/tickers";
 import { formatUSD, formatPercent, formatCompactUSD } from "@/lib/format";
 import { useMarketDataStream } from "@/hooks/useMarketDataStream";
 import { useSentiments } from "@/hooks/useSentiment";
+
+// Map Lucide icon names (from DB) to HugeIcons
+const hugeIconMapping: Record<string, any> = {
+  "Activity": Activity01Icon,
+  "Cpu": CpuIcon,
+  "Zap": ZapIcon,
+  "Factory": Factory02Icon,
+  "Globe": Globe02Icon,
+  "Leaf": Leaf01Icon,
+  "Rocket": Rocket01Icon,
+  "Server": ServerStack02Icon,
+  "Database": Database01Icon,
+  "Bank": BankIcon,
+  "ShoppingBag": SmartPhone01Icon,
+  // Add common fallbacks or others as needed
+  "LayoutGradient": Layout01Icon,
+  // Likely Lucide names for categories
+  "Users": SmartPhone01Icon,
+  "Palette": AiImageIcon,
+  "Building": Building03Icon,
+  "Building2": Building03Icon,
+  "Layers": Layers01Icon,
+  "Bot": Robot01Icon,
+};
+
+// Fallback mapping by Industry Name (most robust)
+const categoryNameMapping: Record<string, any> = {
+  "Consumer": SmartPhone01Icon,
+  "Creative": AiImageIcon,
+  "Enterprise": Building03Icon,
+  "Foundation": Layers01Icon,
+  "Robotics": Robot01Icon,
+  "Infra": CpuIcon,
+};
 
 export default function Markets() {
   const navigate = useNavigate();
@@ -261,7 +319,7 @@ export default function Markets() {
                       className="rounded-full bg-muted/50 hover:bg-muted h-10 w-10 shrink-0"
                       onClick={() => navigate(`/startup/${topGainer.slug}`)}
                     >
-                      <Icons.ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      <ArrowRight01Icon className="h-5 w-5 text-muted-foreground" />
                     </Button>
                   </div>
                 </>
@@ -311,7 +369,7 @@ export default function Markets() {
                       className="rounded-full bg-muted/50 hover:bg-muted h-10 w-10 shrink-0"
                       onClick={() => navigate(`/startup/${mostLiquid.slug}`)}
                     >
-                      <Icons.ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      <ArrowRight01Icon className="h-5 w-5 text-muted-foreground" />
                     </Button>
                   </div>
                 </>
@@ -369,7 +427,7 @@ export default function Markets() {
                 ? "bg-foreground"
                 : "bg-transparent group-hover:bg-transparent group-hover:scale-110"
                 }`}>
-                <Icons.LayoutGrid
+                <MenuSquareIcon
                   strokeWidth={1.5}
                   className={`w-8 h-8 transition-colors ${selectedIndustry === "all"
                     ? "text-background"
@@ -390,9 +448,17 @@ export default function Markets() {
 
           {/* Industry Cards */}
           {industries?.map((industry) => {
-            const IconComponent = industry.icon_name
-              ? (Icons as any)[industry.icon_name] || Sparkles
-              : Sparkles;
+            let IconComponent = SparklesIcon;
+
+            // 1. Try mapping by icon_name (Lucide name from DB)
+            if (industry.icon_name && hugeIconMapping[industry.icon_name]) {
+              IconComponent = hugeIconMapping[industry.icon_name];
+            }
+            // 2. Try mapping by Industry Name (fallback)
+            else if (categoryNameMapping[industry.name]) {
+              IconComponent = categoryNameMapping[industry.name];
+            }
+
             const isSelected = selectedIndustry === industry.id;
 
             return (
@@ -559,9 +625,9 @@ export default function Markets() {
                         className={`flex items-center gap-1.5 px-3 py-1.5 font-mono text-base font-bold ${isPositive ? "text-success" : "text-destructive"}`}
                       >
                         {isPositive ? (
-                          <TrendingUp className="w-5 h-5" />
+                          <ChartIncreaseIcon className="w-5 h-5" />
                         ) : (
-                          <TrendingDown className="w-5 h-5" />
+                          <ChartDecreaseIcon className="w-5 h-5" />
                         )}
                         {isPositive ? "+" : ""}
                         {formatPercent(startup.price_change_24h || 0)}

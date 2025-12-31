@@ -1,4 +1,12 @@
-import { LayoutDashboard, TrendingUp, Globe, Briefcase, Brain, LogOut, Trophy } from "lucide-react";
+import {
+  Analytics02Icon,
+  Layout01Icon,
+  MarketsIcon,
+  Globe02Icon,
+  ChampionIcon,
+  ArtificialIntelligence02Icon,
+  Logout01Icon
+} from "@/components/icons";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate, Link } from "react-router-dom";
 import { ConnectWallet } from "@/components/ConnectWallet";
@@ -20,12 +28,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const menuItems = [
-  { title: "Dashboard", url: "/portfolio", icon: Briefcase },
-  { title: "Industries", url: "/", icon: LayoutDashboard },
-  { title: "Markets", url: "/markets", icon: TrendingUp },
-  { title: "World Map", url: "/map", icon: Globe },
-  { title: "Alpha League", url: "/alpha-league", icon: Trophy },
-  { title: "AI Watcher", url: "/ai-watcher", icon: Brain },
+  { title: "Markets", url: "/markets", icon: MarketsIcon },
+  { title: "My Portfolio", url: "/portfolio", icon: Analytics02Icon },
+  { title: "Industries", url: "/", icon: Layout01Icon },
+  { title: "World Map", url: "/map", icon: Globe02Icon },
+  { title: "Alpha League", url: "/alpha-league", icon: ChampionIcon },
+  { title: "AI Watcher", url: "/ai-watcher", icon: ArtificialIntelligence02Icon },
 ];
 
 export function AppSidebar() {
@@ -50,34 +58,46 @@ export function AppSidebar() {
       className="border-r border-border"
     >
       {/* Sidebar Header: Logo and App Name */}
-      <SidebarHeader className="border-b border-border p-4">
+      <SidebarHeader className="p-4">
         <Link to="/portfolio" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
           {isCollapsed ? (
             <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center shadow-primary">
               <span className="text-primary-foreground font-bold text-lg font-mono">V</span>
             </div>
           ) : (
-            <span className="text-3xl font-bold text-foreground tracking-tight">Velto</span>
+            <span className="text-4xl font-bold text-foreground tracking-tighter">velto</span>
           )}
         </Link>
       </SidebarHeader>
 
       {/* Sidebar Content: Main Navigation Menu */}
       <SidebarContent>
+        <SidebarGroup className="pb-4">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <div className={isCollapsed ? "flex justify-center" : "px-2 py-1"}>
+                  <ConnectWallet isCollapsed={isCollapsed} />
+                </div>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className="mb-2">
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
                       end
                       className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-md"
-                      activeClassName="bg-muted text-primary font-medium"
+                      activeClassName="bg-muted text-foreground font-medium"
                     >
-                      <item.icon className="h-4 w-4" />
-                      {!isCollapsed && <span className="text-sm">{item.title}</span>}
+                      <item.icon className="h-6 w-6" />
+                      {!isCollapsed && <span className="text-base">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -87,31 +107,24 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Sidebar Footer: Wallet, Theme, and Log Out */}
-      <SidebarFooter className="border-t border-border p-2">
+      {/* Sidebar Footer: Theme and Log Out */}
+      <SidebarFooter className="border-t border-border py-6 px-2">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <div className={isCollapsed ? "flex justify-center" : "px-2 py-1"}>
-              <ConnectWallet isCollapsed={isCollapsed} />
-            </div>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="pb-2">
             <ThemeToggle isCollapsed={isCollapsed} />
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="pb-2">
             <SidebarMenuButton
               onClick={handleLogout}
               className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-md"
             >
-              <LogOut className="h-4 w-4" />
-              {!isCollapsed && <span className="text-sm">Sign Out</span>}
+              <Logout01Icon className="h-6 w-6" />
+              {!isCollapsed && <span className="text-base">Sign Out</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
 
-      {/* Sidebar Trigger: Collapse button */}
-      <SidebarTrigger className="m-2 self-end text-muted-foreground hover:text-foreground" />
     </Sidebar>
   );
 }

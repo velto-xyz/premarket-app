@@ -45,7 +45,7 @@ export const ConnectWallet = ({ isCollapsed }: ConnectWalletProps) => {
                                         onClick={openConnectModal}
                                         type="button"
                                         className={cn(
-                                            "w-full rounded-2xl font-bold transition-all duration-300",
+                                            "w-full rounded-full font-medium transition-all duration-300 text-base tracking-normal",
                                             isCollapsed ? "h-10 w-10 p-0" : "px-4"
                                         )}
                                     >
@@ -65,7 +65,7 @@ export const ConnectWallet = ({ isCollapsed }: ConnectWalletProps) => {
                                         type="button"
                                         variant="destructive"
                                         className={cn(
-                                            "w-full rounded-2xl font-bold",
+                                            "w-full rounded-full font-bold",
                                             isCollapsed ? "h-10 w-10 p-0" : "px-4"
                                         )}
                                     >
@@ -81,7 +81,7 @@ export const ConnectWallet = ({ isCollapsed }: ConnectWalletProps) => {
                                         type="button"
                                         variant="outline"
                                         className={cn(
-                                            "w-full rounded-2xl font-mono border-border-default/50 hover:bg-muted/50 transition-all duration-300",
+                                            "w-full rounded-full font-mono border-border-default/50 hover:bg-muted/50 transition-all duration-300",
                                             isCollapsed ? "h-10 w-10 p-0" : "px-4"
                                         )}
                                     >
