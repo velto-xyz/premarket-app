@@ -50,15 +50,15 @@ const App = () => (
                     path="/"
                     element={
                       <ProtectedRoute>
-                        <Industries />
+                        <Markets />
                       </ProtectedRoute>
                     }
                   />
                   <Route
-                    path="/markets"
+                    path="/industries"
                     element={
                       <ProtectedRoute>
-                        <Markets />
+                        <Industries />
                       </ProtectedRoute>
                     }
                   />

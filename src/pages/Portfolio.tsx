@@ -206,7 +206,7 @@ export default function Portfolio() {
         </div>
 
         {/* Section 1: Portfolio KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <Card className="hover:shadow-[var(--shadow-card)] transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -218,7 +218,7 @@ export default function Portfolio() {
               <div className="text-3xl font-bold font-mono text-foreground">
                 {formatUSD(totalMargin)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Collateral in open positions</p>
+              <p className="text-sm text-muted-foreground mt-1">Collateral in open positions</p>
             </CardContent>
           </Card>
 
@@ -233,7 +233,7 @@ export default function Portfolio() {
               <div className="text-3xl font-bold font-mono text-foreground">
                 {formatUSD(totalNotional)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Total position size (leveraged)</p>
+              <p className="text-sm text-muted-foreground mt-1">Total position size (leveraged)</p>
             </CardContent>
           </Card>
 
@@ -248,7 +248,7 @@ export default function Portfolio() {
               <div className={`text-3xl font-bold font-mono ${totalPnL >= 0 ? "text-success" : "text-destructive"}`}>
                 {totalPnL >= 0 ? "+" : ""}{formatUSD(totalPnL)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">From closed positions</p>
+              <p className="text-sm text-muted-foreground mt-1">From closed positions</p>
             </CardContent>
           </Card>
 
@@ -263,7 +263,7 @@ export default function Portfolio() {
               <div className="text-3xl font-bold font-mono text-foreground">
                 {numPositions}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Across {uniqueMarkets} market{uniqueMarkets !== 1 ? 's' : ''}</p>
+              <p className="text-sm text-muted-foreground mt-1">Across {uniqueMarkets} market{uniqueMarkets !== 1 ? 's' : ''}</p>
             </CardContent>
           </Card>
 
@@ -298,8 +298,7 @@ export default function Portfolio() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-foreground" />
+              <CardTitle className="text-xl">
                 Open Positions
               </CardTitle>
             </div>
@@ -414,8 +413,7 @@ export default function Portfolio() {
         {/* Section 3: Activity Log */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Activity className="h-5 w-5 text-foreground" />
+            <CardTitle className="text-xl">
               Activity Log
             </CardTitle>
           </CardHeader>

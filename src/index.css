@@ -1,4 +1,5 @@
 @import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -35,7 +36,7 @@
     /* Typography - Single Source of Truth */
     --font-sans: "Satoshi", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     --font-heading: "Satoshi", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
+    --font-mono: "JetBrains Mono", monospace;
 
     /* Surface/Cards - Pure white with soft shadows */
     --card: 0 0% 100%;
@@ -55,8 +56,8 @@
     /* Secondary - Professional Blue-Gray (#5E7690) */
     --secondary: 211 21% 47%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-soft: 215 39% 92%;
-    /* #E1E8F2 */
+    --secondary-soft: 207 44% 96%;
+    /* #F0F5F9 */
 
     /* Muted - Soft blue-gray */
     --muted: 220 33% 98%;
@@ -103,7 +104,7 @@
     --shadow-card: 0 2px 12px hsl(193 33% 87% / 0.4);
 
     /* Terminal radius - Sharp, squared-off */
-    --radius: 1.5rem;
+    --radius: 1.25rem;
 
     /* Sidebar - Light Gray-Blue (#F9FAFC) */
     --sidebar-background: 220 33% 98%;
@@ -222,9 +223,8 @@
     letter-spacing: -0.02em;
   }
 
-  /* Monospace for data/numbers */
   .font-mono {
-    font-family: "JetBrains Mono", "IBM Plex Mono", "Fira Code", monospace;
+    font-family: "JetBrains Mono", monospace;
   }
 }
 

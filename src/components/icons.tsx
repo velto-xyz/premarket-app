@@ -4,6 +4,7 @@ import {
     AiImageIcon as _AiImageIcon,
     Analytics02Icon as _Analytics02Icon,
     ArrowRight01Icon as _ArrowRight01Icon,
+    ArrowRight02Icon as _ArrowRight02Icon,
     ArtificialIntelligence02Icon as _ArtificialIntelligence02Icon,
     BankIcon as _BankIcon,
     BotIcon as _BotIcon,
@@ -45,6 +46,7 @@ export const Activity01Icon = createIcon(_Activity01Icon);
 export const AiImageIcon = createIcon(_AiImageIcon);
 export const Analytics02Icon = createIcon(_Analytics02Icon);
 export const ArrowRight01Icon = createIcon(_ArrowRight01Icon);
+export const ArrowRight02Icon = createIcon(_ArrowRight02Icon);
 export const ArtificialIntelligence02Icon = createIcon(_ArtificialIntelligence02Icon);
 export const BankIcon = createIcon(_BankIcon);
 export const BotIcon = createIcon(_BotIcon);

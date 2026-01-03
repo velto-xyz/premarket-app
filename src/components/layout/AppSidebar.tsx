@@ -28,9 +28,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const menuItems = [
-  { title: "Markets", url: "/markets", icon: MarketsIcon },
+  { title: "Markets", url: "/", icon: MarketsIcon },
   { title: "My Portfolio", url: "/portfolio", icon: Analytics02Icon },
-  { title: "Industries", url: "/", icon: Layout01Icon },
+  { title: "Industries", url: "/industries", icon: Layout01Icon },
   { title: "World Map", url: "/map", icon: Globe02Icon },
   { title: "Alpha League", url: "/alpha-league", icon: ChampionIcon },
   { title: "AI Watcher", url: "/ai-watcher", icon: ArtificialIntelligence02Icon },

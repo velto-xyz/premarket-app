@@ -19,7 +19,7 @@ import {
   MenuSquareIcon,
   ChartDecreaseIcon,
   Layout01Icon,
-  ArrowRight01Icon,
+  ArrowRight02Icon,
   SparklesIcon,
   Activity01Icon,
   CpuIcon,
@@ -288,7 +288,10 @@ export default function Markets() {
         {/* === Analytics Overview Grid === */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-12">
           {/* Column 1: Top Gainer */}
-          <Card className="glass border-border relative overflow-hidden group h-full flex flex-col justify-between">
+          <Card
+            className="glass border-border relative overflow-hidden group h-full flex flex-col justify-between cursor-pointer transition-all duration-300 hover:bg-muted/80"
+            onClick={() => topGainer && navigate(`/startup/${topGainer.slug}`)}
+          >
             <CardHeader className="p-6 pb-2 relative">
               <CardTitle className="text-muted-foreground text-sm font-medium">Top Gainer</CardTitle>
             </CardHeader>
@@ -324,10 +327,10 @@ export default function Markets() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full bg-muted/50 hover:bg-muted h-10 w-10 shrink-0"
+                      className="rounded-full bg-secondary-soft group-hover:bg-border h-11 w-11 shrink-0 [&_svg]:size-5 transition-colors duration-300"
                       onClick={() => navigate(`/startup/${topGainer.slug}`)}
                     >
-                      <ArrowRight01Icon className="h-5 w-5 text-muted-foreground" />
+                      <ArrowRight02Icon className="text-muted-foreground" />
                     </Button>
                   </div>
                 </>
@@ -338,7 +341,10 @@ export default function Markets() {
           </Card>
 
           {/* Column 2: Most Liquid */}
-          <Card className="glass border-border relative overflow-hidden group h-full flex flex-col justify-between">
+          <Card
+            className="glass border-border relative overflow-hidden group h-full flex flex-col justify-between cursor-pointer transition-all duration-300 hover:bg-muted/80"
+            onClick={() => mostLiquid && navigate(`/startup/${mostLiquid.slug}`)}
+          >
             <CardHeader className="p-6 pb-2 relative">
               <CardTitle className="text-muted-foreground text-sm font-medium">Most Traded</CardTitle>
             </CardHeader>
@@ -374,10 +380,10 @@ export default function Markets() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full bg-muted/50 hover:bg-muted h-10 w-10 shrink-0"
+                      className="rounded-full bg-secondary-soft group-hover:bg-border h-11 w-11 shrink-0 [&_svg]:size-5 transition-colors duration-300"
                       onClick={() => navigate(`/startup/${mostLiquid.slug}`)}
                     >
-                      <ArrowRight01Icon className="h-5 w-5 text-muted-foreground" />
+                      <ArrowRight02Icon className="text-muted-foreground" />
                     </Button>
                   </div>
                 </>
@@ -421,27 +427,27 @@ export default function Markets() {
         <h2 className="text-2xl font-heading font-bold mb-6 text-foreground">Startups Market</h2>
 
         {/* === Category Filter Cards === */}
-        <div className="flex overflow-x-auto pb-4 gap-3 mb-8 -mx-4 px-4 scrollbar-hide snap-x">
+        <div className="flex overflow-x-auto pt-2 pb-4 gap-3 mb-8 -mx-4 px-4 scrollbar-hide snap-x">
           {/* All Categories Card */}
           <Card
-            className={`group cursor-pointer transition-all duration-300 overflow-hidden w-[160px] h-[160px] shrink-0 ${selectedIndustry === "all"
-              ? "border-foreground border-2 bg-muted"
-              : "border-border hover:border-foreground hover:bg-muted glass"
+            className={`group cursor-pointer transition-all duration-300 w-[140px] h-[140px] shrink-0 ${selectedIndustry === "all"
+              ? "border-border ring-2 ring-foreground bg-muted"
+              : "border-border hover:bg-muted glass"
               }`}
             onClick={() => setSelectedIndustry("all")}
           >
             <CardContent className="p-4 relative h-full flex flex-col items-center justify-center text-center">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300 bg-transparent group-hover:scale-110">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-0 transition-all duration-300 bg-transparent group-hover:scale-110 ${selectedIndustry === "all" ? "scale-110" : ""}`}>
                 <MenuSquareIcon
                   strokeWidth={1.5}
-                  className={`w-8 h-8 transition-colors ${selectedIndustry === "all"
+                  className={`w-7 h-7 transition-colors ${selectedIndustry === "all"
                     ? "text-foreground"
                     : "text-muted-foreground/70 group-hover:text-foreground"
                     }`}
                 />
               </div>
-              <div className="space-y-1">
-                <h3 className={`text-lg font-heading transition-colors ${selectedIndustry === "all"
+              <div className="space-y-2">
+                <h3 className={`text-[17px] font-heading transition-colors ${selectedIndustry === "all"
                   ? "text-foreground font-bold"
                   : "text-content-secondary font-medium group-hover:text-foreground"
                   }`}>
@@ -469,24 +475,24 @@ export default function Markets() {
             return (
               <Card
                 key={industry.id}
-                className={`group cursor-pointer transition-all duration-300 overflow-hidden w-[160px] h-[160px] shrink-0 ${isSelected
-                  ? "border-foreground border-2 bg-muted"
-                  : "border-border hover:border-foreground hover:bg-muted glass"
+                className={`group cursor-pointer transition-all duration-300 w-[140px] h-[140px] shrink-0 ${isSelected
+                  ? "border-border ring-2 ring-foreground bg-muted"
+                  : "border-border hover:bg-muted glass"
                   }`}
                 onClick={() => setSelectedIndustry(industry.id)}
               >
                 <CardContent className="p-4 relative h-full flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300 bg-transparent group-hover:scale-110">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-1 transition-all duration-300 bg-transparent group-hover:scale-110 ${isSelected ? "scale-110" : ""}`}>
                     <IconComponent
                       strokeWidth={1.5}
-                      className={`w-8 h-8 transition-colors ${isSelected
+                      className={`w-7 h-7 transition-colors ${isSelected
                         ? "text-foreground"
                         : "text-muted-foreground/70 group-hover:text-foreground"
                         }`}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <h3 className={`text-lg font-heading transition-colors ${isSelected
+                  <div className="space-y-0.5">
+                    <h3 className={`text-[17px] font-heading transition-colors ${isSelected
                       ? "text-foreground font-bold"
                       : "text-content-secondary font-medium group-hover:text-foreground"
                       }`}>
@@ -634,10 +640,10 @@ export default function Markets() {
                     </div>
 
                     {/* Trade Button */}
-                    <div className="w-full flex justify-end">
+                    <div className="w-full flex justify-end p-1">
                       <Button
                         size="sm"
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full px-6"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full px-6 text-[14px] !shadow-[0_0_0_5px_hsl(var(--primary)/0.2)]"
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent card click
                           navigate(`/startup/${startup.slug}`);
