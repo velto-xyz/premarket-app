@@ -274,7 +274,7 @@ export default function Markets() {
 
   return (
     <AppLayout className="py-0">
-      <div className="container mx-auto p-8">
+      <div className="container mx-auto px-[3vw] py-[48px]">
 
         {/* === Header Section === */}
         <div className="mb-8">
@@ -532,133 +532,137 @@ export default function Markets() {
           </div>
         </div>
 
-        {/* === Main Startup List === */}
-        {/* === Table Headers === */}
-        <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_100px] gap-6 px-6 pb-4 pt-5 mb-4 border-b border-border text-sm font-medium text-muted-foreground uppercase tracking-wider items-center sticky top-0 z-10 bg-background min-w-[1000px] whitespace-nowrap">
-          <div
-            className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
-            onClick={() => handleSort('name')}
-          >
-            Startup
-            {sortConfig.key === 'name' && (
-              sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-            )}
-          </div>
-          <div
-            className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
-            onClick={() => handleSort('price_change_24h')}
-          >
-            Price Action
-            {sortConfig.key === 'price_change_24h' && (
-              sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-            )}
-          </div>
-          <div
-            className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
-            onClick={() => handleSort('current_price')}
-          >
-            Current Price
-            {sortConfig.key === 'current_price' && (
-              sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-            )}
-          </div>
-          <div>Industry</div>
-          <div
-            className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
-            onClick={() => handleSort('market_cap')}
-          >
-            Market Cap
-            {sortConfig.key === 'market_cap' && (
-              sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-            )}
-          </div>
-          <div></div>
-        </div>
-
-        {/* === Main Startup List === */}
-        <div className="space-y-1">
-          {filteredAndSortedStartups.map((startup) => {
-            const isPositive = (startup.price_change_24h || 0) >= 0;
-
-            return (
-              <Card
-                key={startup.id}
-                className="group border-none shadow-none bg-transparent hover:bg-muted/100 transition-colors duration-200 rounded-xl cursor-pointer"
-                onClick={() => navigate(`/startup/${startup.slug}`)}
+        {/* === Table Section with Isolated Horizontal Scroll === */}
+        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="min-w-[1000px]">
+            {/* === Table Headers === */}
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_100px] gap-6 px-6 pb-4 pt-5 mb-4 border-b border-border text-sm font-medium text-muted-foreground uppercase tracking-wider items-center sticky top-0 z-10 bg-background min-w-[1090px] whitespace-nowrap">
+              <div
+                className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
+                onClick={() => handleSort('name')}
               >
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_100px] gap-6 items-center min-w-[1000px]">
+                Startup
+                {sortConfig.key === 'name' && (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </div>
+              <div
+                className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
+                onClick={() => handleSort('price_change_24h')}
+              >
+                Price Action
+                {sortConfig.key === 'price_change_24h' && (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </div>
+              <div
+                className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
+                onClick={() => handleSort('current_price')}
+              >
+                Current Price
+                {sortConfig.key === 'current_price' && (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </div>
+              <div>Industry</div>
+              <div
+                className="cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors"
+                onClick={() => handleSort('market_cap')}
+              >
+                Market Cap
+                {sortConfig.key === 'market_cap' && (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </div>
+              <div></div>
+            </div>
 
-                    {/* Startup Info */}
-                    <div className="flex items-center gap-4 w-full">
-                      <div className="w-16 h-16 rounded-xl bg-background flex items-center justify-center p-2 shrink-0">
-                        <img
-                          src={getLogoUrl(startup)}
-                          alt={`${startup.name} logo`}
-                          className="w-full h-full object-contain"
-                        />
+            {/* === Main Startup List === */}
+            <div className="space-y-1">
+              {filteredAndSortedStartups.map((startup) => {
+                const isPositive = (startup.price_change_24h || 0) >= 0;
+
+                return (
+                  <Card
+                    key={startup.id}
+                    className="group border-none shadow-none bg-transparent hover:bg-muted/100 transition-colors duration-200 rounded-xl cursor-pointer"
+                    onClick={() => navigate(`/startup/${startup.slug}`)}
+                  >
+                    <CardContent className="p-4 px-6">
+                      <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_100px] gap-6 items-center min-w-[1060px]">
+
+                        {/* Startup Info */}
+                        <div className="flex items-center gap-4 w-full">
+                          <div className="w-16 h-16 rounded-xl bg-background flex items-center justify-center p-2 shrink-0">
+                            <img
+                              src={getLogoUrl(startup)}
+                              alt={`${startup.name} logo`}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-lg font-heading font-bold text-foreground truncate">
+                              {startup.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {startup.hq_location}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Price Action */}
+                        <div className="w-full">
+                          <span className="md:hidden text-sm text-muted-foreground">24h Change</span>
+                          <div className={`font-mono text-base font-bold ${isPositive ? "text-success" : "text-destructive"}`}>
+                            {isPositive ? "+" : ""}{formatPercent(startup.price_change_24h || 0)}
+                          </div>
+                        </div>
+
+                        {/* Current Price */}
+                        <div className="w-full flex md:block justify-between md:justify-start">
+                          <span className="md:hidden text-sm text-muted-foreground">Price</span>
+                          <div className="text-base font-bold font-mono text-foreground">
+                            {formatUSD(startup.current_price)}
+                          </div>
+                        </div>
+
+                        {/* Industry */}
+                        <div className="w-full flex md:block justify-between md:justify-start">
+                          <span className="md:hidden text-sm text-muted-foreground">Industry</span>
+                          <Badge variant="secondary">
+                            {startup.industries?.name}
+                          </Badge>
+                        </div>
+
+                        {/* Market Cap */}
+                        <div className="w-full flex md:block justify-between md:justify-start">
+                          <span className="md:hidden text-sm text-muted-foreground">Market Cap</span>
+                          <div className="text-base font-semibold font-mono text-foreground">
+                            {formatCompactUSD(startup.market_cap)}
+                          </div>
+                        </div>
+
+                        {/* Trade Button */}
+                        <div className="w-full flex justify-end p-1">
+                          <Button
+                            size="sm"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full px-6 text-[14px] !shadow-[0_0_0_5px_hsl(var(--primary)/0.2)]"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent card click
+                              navigate(`/startup/${startup.slug}`);
+                            }}
+                          >
+                            Trade
+                          </Button>
+                        </div>
+
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="text-lg font-heading font-bold text-foreground truncate">
-                          {startup.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {startup.hq_location}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Price Action */}
-                    <div className="w-full">
-                      <span className="md:hidden text-sm text-muted-foreground">24h Change</span>
-                      <div className={`font-mono text-base font-bold ${isPositive ? "text-success" : "text-destructive"}`}>
-                        {isPositive ? "+" : ""}{formatPercent(startup.price_change_24h || 0)}
-                      </div>
-                    </div>
-
-                    {/* Current Price */}
-                    <div className="w-full flex md:block justify-between md:justify-start">
-                      <span className="md:hidden text-sm text-muted-foreground">Price</span>
-                      <div className="text-base font-bold font-mono text-foreground">
-                        {formatUSD(startup.current_price)}
-                      </div>
-                    </div>
-
-                    {/* Industry */}
-                    <div className="w-full flex md:block justify-between md:justify-start">
-                      <span className="md:hidden text-sm text-muted-foreground">Industry</span>
-                      <Badge variant="secondary">
-                        {startup.industries?.name}
-                      </Badge>
-                    </div>
-
-                    {/* Market Cap */}
-                    <div className="w-full flex md:block justify-between md:justify-start">
-                      <span className="md:hidden text-sm text-muted-foreground">Market Cap</span>
-                      <div className="text-base font-semibold font-mono text-foreground">
-                        {formatCompactUSD(startup.market_cap)}
-                      </div>
-                    </div>
-
-                    {/* Trade Button */}
-                    <div className="w-full flex justify-end p-1">
-                      <Button
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full px-6 text-[14px] !shadow-[0_0_0_5px_hsl(var(--primary)/0.2)]"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent card click
-                          navigate(`/startup/${startup.slug}`);
-                        }}
-                      >
-                        Trade
-                      </Button>
-                    </div>
-
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </AppLayout>
