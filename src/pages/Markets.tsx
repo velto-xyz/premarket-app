@@ -174,8 +174,9 @@ export default function Markets() {
     industries: industries?.find(ind => ind.id === m.industryId)
   }));
 
-  const getLogoUrl = (slug: string) => {
-    return startupLogos[slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"];
+  const getLogoUrl = (startup: any) => {
+    if (startup.logo_url) return startup.logo_url;
+    return startupLogos[startup.slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"];
   };
 
   // Fetch sentiment scores for "Most Trending" card
@@ -300,9 +301,9 @@ export default function Markets() {
                 <>
                   <div className="flex items-start gap-4 mb-6">
                     <img
-                      src={getLogoUrl(topGainer.slug)}
+                      src={getLogoUrl(topGainer)}
                       alt={topGainer.name}
-                      className="w-12 h-12 rounded-xl object-cover"
+                      className="w-12 h-12 rounded-xl object-contain"
                     />
                     <div>
                       <div className="flex items-baseline gap-2">
@@ -353,9 +354,9 @@ export default function Markets() {
                 <>
                   <div className="flex items-start gap-4 mb-6">
                     <img
-                      src={getLogoUrl(mostLiquid.slug)}
+                      src={getLogoUrl(mostLiquid)}
                       alt={mostLiquid.name}
-                      className="w-12 h-12 rounded-xl object-cover"
+                      className="w-12 h-12 rounded-xl object-contain"
                     />
                     <div>
                       <div className="flex items-baseline gap-2">
@@ -590,9 +591,9 @@ export default function Markets() {
 
                     {/* Startup Info */}
                     <div className="flex items-center gap-4 w-full">
-                      <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center p-2 shrink-0">
+                      <div className="w-16 h-16 rounded-xl bg-background flex items-center justify-center p-2 shrink-0">
                         <img
-                          src={startupLogos[startup.slug]}
+                          src={getLogoUrl(startup)}
                           alt={`${startup.name} logo`}
                           className="w-full h-full object-contain"
                         />

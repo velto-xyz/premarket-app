@@ -121,7 +121,7 @@ export default function StartupDetail() {
                   <div className="flex items-center gap-6">
                     <div className="w-20 h-20 rounded-2xl bg-background flex items-center justify-center p-2">
                       <img
-                        src={startupLogos[startup.slug]}
+                        src={startup.logo_url || startupLogos[startup.slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"]}
                         alt={`${startup.name} logo`}
                         className="w-full h-full object-contain"
                       />

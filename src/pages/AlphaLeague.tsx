@@ -46,6 +46,7 @@ export default function AlphaLeague() {
       price_change_24h: m.priceChange24h || 0,
       market_cap: m.quoteReserve || 0,
       volume_24h: m.totalVolume || 0,
+      logo_url: m.logoUrl,
       industries: industries?.find(ind => ind.id === m.industryId),
     }));
   }, [markets, industries]);
@@ -125,8 +126,9 @@ export default function AlphaLeague() {
     return [...rankedStartups].sort((a, b) => b.sentiment - a.sentiment)[0];
   }, [rankedStartups]);
 
-  const getLogoUrl = (slug: string) => {
-    return startupLogos[slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"];
+  const getLogoUrl = (startup: any) => {
+    if (startup.logo_url) return startup.logo_url;
+    return startupLogos[startup.slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"];
   };
 
   return (
@@ -182,15 +184,14 @@ export default function AlphaLeague() {
                   #{index + 1}
                 </span>
                 <div
-                  className={`relative h-14 rounded-xl flex items-center gap-4 px-4 transition-all duration-700 ease-out border ${
-                    index === 0
+                  className={`relative h-14 rounded-xl flex items-center gap-4 px-4 transition-all duration-700 ease-out border ${index === 0
                       ? "bg-primary/20 border-primary/40 shadow-[0_0_20px_hsl(var(--primary)/0.2)]"
                       : "bg-muted/30 border-border"
-                  }`}
+                    }`}
                   style={{ width: `${startup.score}%` }}
                 >
                   <img
-                    src={getLogoUrl(startup.slug)}
+                    src={getLogoUrl(startup)}
                     alt={startup.name}
                     className="w-8 h-8 rounded-lg object-cover"
                   />
@@ -223,7 +224,7 @@ export default function AlphaLeague() {
                 <>
                   <div className="flex items-center gap-3">
                     <img
-                      src={getLogoUrl(topGainer.slug)}
+                      src={getLogoUrl(topGainer)}
                       alt={topGainer.name}
                       className="w-12 h-12 rounded-xl object-cover"
                     />
@@ -267,7 +268,7 @@ export default function AlphaLeague() {
                 <>
                   <div className="flex items-center gap-3">
                     <img
-                      src={getLogoUrl(mostLiquid.slug)}
+                      src={getLogoUrl(mostLiquid)}
                       alt={mostLiquid.name}
                       className="w-12 h-12 rounded-xl object-cover"
                     />
@@ -311,7 +312,7 @@ export default function AlphaLeague() {
                 <>
                   <div className="flex items-center gap-3">
                     <img
-                      src={getLogoUrl(highestSentiment.slug)}
+                      src={getLogoUrl(highestSentiment)}
                       alt={highestSentiment.name}
                       className="w-12 h-12 rounded-xl object-cover"
                     />
@@ -324,13 +325,12 @@ export default function AlphaLeague() {
                     <p className="text-4xl font-mono font-bold text-purple-500">
                       {highestSentiment.sentiment}
                     </p>
-                    <span className={`text-sm px-2 py-0.5 rounded ${
-                      highestSentiment.sentimentTrend === 'up' ? 'bg-success/20 text-success' :
-                      highestSentiment.sentimentTrend === 'down' ? 'bg-destructive/20 text-destructive' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
+                    <span className={`text-sm px-2 py-0.5 rounded ${highestSentiment.sentimentTrend === 'up' ? 'bg-success/20 text-success' :
+                        highestSentiment.sentimentTrend === 'down' ? 'bg-destructive/20 text-destructive' :
+                          'bg-muted text-muted-foreground'
+                      }`}>
                       {highestSentiment.sentimentTrend === 'up' ? '↑ Rising' :
-                       highestSentiment.sentimentTrend === 'down' ? '↓ Falling' : '→ Stable'}
+                        highestSentiment.sentimentTrend === 'down' ? '↓ Falling' : '→ Stable'}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">Wikipedia Interest Score</p>
@@ -384,7 +384,7 @@ export default function AlphaLeague() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <img
-                            src={getLogoUrl(startup.slug)}
+                            src={getLogoUrl(startup)}
                             alt={startup.name}
                             className="w-8 h-8 rounded-lg object-cover"
                           />
@@ -401,10 +401,9 @@ export default function AlphaLeague() {
                         {startup.price_change_24h >= 0 ? "+" : ""}{formatPercent(startup.price_change_24h)}
                       </TableCell>
                       <TableCell className="text-right font-mono text-muted-foreground">
-                        <span className={`inline-flex items-center gap-1 ${
-                          startup.sentimentTrend === 'up' ? 'text-success' :
-                          startup.sentimentTrend === 'down' ? 'text-destructive' : ''
-                        }`}>
+                        <span className={`inline-flex items-center gap-1 ${startup.sentimentTrend === 'up' ? 'text-success' :
+                            startup.sentimentTrend === 'down' ? 'text-destructive' : ''
+                          }`}>
                           {startup.sentiment}
                           {startup.sentimentTrend === 'up' && '↑'}
                           {startup.sentimentTrend === 'down' && '↓'}
@@ -413,9 +412,8 @@ export default function AlphaLeague() {
                       <TableCell className="text-right font-mono text-purple-500 tabular-nums">
                         {startup.score.toFixed(0)}
                       </TableCell>
-                      <TableCell className={`text-right font-mono font-bold ${
-                        index < 3 ? "text-primary" : index < 5 ? "text-blue-500" : index < 10 ? "text-purple-500" : "text-muted-foreground"
-                      }`}>
+                      <TableCell className={`text-right font-mono font-bold ${index < 3 ? "text-primary" : index < 5 ? "text-blue-500" : index < 10 ? "text-purple-500" : "text-muted-foreground"
+                        }`}>
                         {yieldBoost}
                       </TableCell>
                     </TableRow>
