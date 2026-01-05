@@ -9,7 +9,6 @@ import { ThemeProvider } from "next-themes";
 import { wagmiConfig } from "@/lib/wagmi-config";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Auth from "./pages/Auth";
-import Industries from "./pages/Industries";
 import Markets from "./pages/Markets";
 import StartupDetail from "./pages/StartupDetail";
 import WorldMap from "./pages/WorldMap";
@@ -51,14 +50,6 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <Markets />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/industries"
-                    element={
-                      <ProtectedRoute>
-                        <Industries />
                       </ProtectedRoute>
                     }
                   />

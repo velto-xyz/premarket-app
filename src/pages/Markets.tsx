@@ -583,7 +583,7 @@ export default function Markets() {
             return (
               <Card
                 key={startup.id}
-                className="group border-none shadow-none bg-transparent hover:bg-muted/100 transition-colors duration-200 rounded-xl"
+                className="group border-none shadow-none bg-transparent hover:bg-muted/100 transition-colors duration-200 rounded-xl cursor-pointer"
                 onClick={() => navigate(`/startup/${startup.slug}`)}
               >
                 <CardContent className="p-4">
