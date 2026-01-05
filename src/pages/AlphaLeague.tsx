@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrendingUp, BarChart3, Brain, Sparkles, Clock, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -132,8 +133,8 @@ export default function AlphaLeague() {
   };
 
   return (
-    <AppLayout>
-      <div className="min-h-screen p-6 space-y-8 bg-background">
+    <AppLayout className="relative overflow-hidden">
+      <div className="min-h-screen p-6 space-y-8 bg-background opacity-100 pointer-events-none select-none filter blur-[2px] transition-all duration-500">
         {/* Status Banner */}
         <div className="rounded-xl p-4 flex items-center justify-between bg-gradient-to-r from-primary/10 to-destructive/10 border border-border">
           <div className="flex items-center gap-4">
@@ -185,8 +186,8 @@ export default function AlphaLeague() {
                 </span>
                 <div
                   className={`relative h-14 rounded-xl flex items-center gap-4 px-4 transition-all duration-700 ease-out border ${index === 0
-                      ? "bg-primary/20 border-primary/40 shadow-[0_0_20px_hsl(var(--primary)/0.2)]"
-                      : "bg-muted/30 border-border"
+                    ? "bg-primary/20 border-primary/40 shadow-[0_0_20px_hsl(var(--primary)/0.2)]"
+                    : "bg-muted/30 border-border"
                     }`}
                   style={{ width: `${startup.score}%` }}
                 >
@@ -326,8 +327,8 @@ export default function AlphaLeague() {
                       {highestSentiment.sentiment}
                     </p>
                     <span className={`text-sm px-2 py-0.5 rounded ${highestSentiment.sentimentTrend === 'up' ? 'bg-success/20 text-success' :
-                        highestSentiment.sentimentTrend === 'down' ? 'bg-destructive/20 text-destructive' :
-                          'bg-muted text-muted-foreground'
+                      highestSentiment.sentimentTrend === 'down' ? 'bg-destructive/20 text-destructive' :
+                        'bg-muted text-muted-foreground'
                       }`}>
                       {highestSentiment.sentimentTrend === 'up' ? '↑ Rising' :
                         highestSentiment.sentimentTrend === 'down' ? '↓ Falling' : '→ Stable'}
@@ -402,7 +403,7 @@ export default function AlphaLeague() {
                       </TableCell>
                       <TableCell className="text-right font-mono text-muted-foreground">
                         <span className={`inline-flex items-center gap-1 ${startup.sentimentTrend === 'up' ? 'text-success' :
-                            startup.sentimentTrend === 'down' ? 'text-destructive' : ''
+                          startup.sentimentTrend === 'down' ? 'text-destructive' : ''
                           }`}>
                           {startup.sentiment}
                           {startup.sentimentTrend === 'up' && '↑'}
@@ -421,6 +422,31 @@ export default function AlphaLeague() {
                 })}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Coming Soon Overlay */}
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/30 backdrop-blur-sm">
+        <Card className="w-full max-w-md mx-4 shadow-none border-default bg-background/20 backdrop-blur-xl animate-in fade-in zoom-in duration-300">
+          <CardHeader className="text-center pb-4 pt-10">
+            <CardTitle className="text-3xl font-bold text-black dark:text-white">
+              Coming Soon
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center pb-12 px-7">
+            <p className="text-muted-foreground text-md leading-relaxed">
+              Compete with other traders in our weekly league to earn exclusive rewards & yield boosts.
+            </p>
+
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <Badge variant="secondary" className="px-4 py-1.5 bg-primary/30 text-black border-none font-medium text-sm rounded-[8px]">
+                Weekly Rewards
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-1.5 bg-primary/30 text-black border-none font-medium text-sm rounded-[8px]">
+                Trader Rankings
+              </Badge>
+            </div>
           </CardContent>
         </Card>
       </div>
