@@ -15,56 +15,60 @@ export default {
     extend: {
       colors: {
         border: "hsl(var(--border))",
+        "border-default": "hsl(var(--border-default))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        
+        "content-primary": "hsl(var(--foreground))",
+        "content-secondary": "hsl(var(--secondary))",
+
         // Primary – Electric Teal (Bullish/Long)
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
-        
-        // Secondary – Sharp Orange (Bearish/Short)
+
+        // Secondary – Professional Blue-Gray (#5E7690)
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+          soft: "hsl(var(--secondary-soft))",
         },
-        
+
         // Destructive – Same as Bearish
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
-        
+
         // Success – Bright Green (Bullish/Uptrend)
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
         },
-        
+
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
-        
+
         // Accent – Electric Purple (AI/Neutral)
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
-        
+
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
-        
+
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        
+
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -75,7 +79,7 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        
+
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
@@ -84,26 +88,26 @@ export default {
         },
 
       },
-      
+
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        heading: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['JetBrains Mono', 'IBM Plex Mono', 'Fira Code', 'monospace'],
+        sans: ['var(--font-sans)', 'sans-serif'],
+        heading: ['var(--font-heading)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
-      
+
       // Terminal-style sharp corners
       borderRadius: {
-        lg: "6px",
-        md: "4px",
-        sm: "2px",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
-      
+
       // Box shadows - now theme-aware via CSS variables
       // Use shadow-primary, shadow-secondary, shadow-accent utility classes instead
       boxShadow: {
         'card': 'var(--shadow-card)',
       },
-      
+
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -123,14 +127,14 @@ export default {
           "100%": { opacity: "1" },
         },
       },
-      
+
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "data-tick": "data-tick 1s ease-in-out infinite",
       },
-      
+
       // Dense spacing for cockpit feel
       spacing: {
         '0.5': '2px',

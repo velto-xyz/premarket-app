@@ -148,15 +148,16 @@ export default function TradingPanel({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="Enter amount"
+            className="font-mono"
           />
           {needsDeposit && isConnected && !insufficientFunds && (
             <p className="text-xs text-amber-500">
-              Will deposit ${(amountNum - internalBalance).toFixed(2)} from wallet
+              Will deposit <span className="font-mono">${(amountNum - internalBalance).toFixed(2)}</span> from wallet
             </p>
           )}
           {insufficientFunds && isConnected && (
             <p className="text-xs text-destructive">
-              Need ${(amountNum - totalAvailable).toFixed(2)} more USDC
+              Need <span className="font-mono">${(amountNum - totalAvailable).toFixed(2)}</span> more USDC
             </p>
           )}
         </div>
@@ -165,7 +166,7 @@ export default function TradingPanel({
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <Label>Multiplier</Label>
-            <span className="text-lg font-bold text-primary">{leverage}x</span>
+            <span className="text-lg font-bold text-primary font-mono">{leverage}x</span>
           </div>
           <Slider
             value={[leverage]}
@@ -175,7 +176,7 @@ export default function TradingPanel({
             step={1}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-xs text-muted-foreground font-mono">
             <span>1x (Safe)</span>
             <span>5x</span>
             <span>10x (Risky)</span>
@@ -192,8 +193,7 @@ export default function TradingPanel({
                   High Liquidation Risk
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Your position will hit auto-sell if price reaches $
-                  {liquidationPrice.toFixed(2)}
+                  Your position will hit auto-sell if price reaches <span className="font-mono">${liquidationPrice.toFixed(2)}</span>
                 </p>
               </div>
             </div>
@@ -204,7 +204,7 @@ export default function TradingPanel({
         <div className="p-4 rounded-lg bg-background/50 border border-border space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Mark Price</span>
-            <span className="font-medium">${currentPrice.toFixed(2)}</span>
+            <span className="font-medium font-mono">${currentPrice.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground flex items-center gap-1">
@@ -220,7 +220,7 @@ export default function TradingPanel({
                 </Tooltip>
               </TooltipProvider>
             </span>
-            <span className="font-medium">
+            <span className="font-medium font-mono">
               ${estimatedEntryPrice.toFixed(2)}
               {slippage !== 0 && (
                 <span className={`ml-1 text-xs ${slippage > 0 ? "text-destructive" : "text-success"}`}>
@@ -231,7 +231,7 @@ export default function TradingPanel({
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Investment</span>
-            <span className="font-medium">${investment.toFixed(2)}</span>
+            <span className="font-medium font-mono">${investment.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground flex items-center gap-1">
@@ -247,7 +247,7 @@ export default function TradingPanel({
                 </Tooltip>
               </TooltipProvider>
             </span>
-            <span className="font-bold text-primary">
+            <span className="font-bold text-primary font-mono">
               ${(investment * leverage).toFixed(2)}
             </span>
           </div>
@@ -265,13 +265,13 @@ export default function TradingPanel({
                 </Tooltip>
               </TooltipProvider>
             </span>
-            <span className="font-medium text-destructive">
+            <span className="font-medium text-destructive font-mono">
               ${liquidationPrice.toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between text-sm pt-2 border-t border-border">
             <span className="text-muted-foreground">Potential +10% Gain</span>
-            <span className="font-bold text-success">
+            <span className="font-bold text-success font-mono">
               +${potentialGain.toFixed(2)}
             </span>
           </div>
@@ -287,18 +287,18 @@ export default function TradingPanel({
           {!isConnected
             ? "Connect Wallet to Trade"
             : insufficientFunds
-            ? "Insufficient Funds"
-            : openPosition.isPending
-            ? "Processing..."
-            : needsDeposit
-            ? "Deposit & Trade"
-            : "Confirm Trade"}
+              ? "Insufficient Funds"
+              : openPosition.isPending
+                ? "Processing..."
+                : needsDeposit
+                  ? "Deposit & Trade"
+                  : "Confirm Trade"}
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground text-center font-mono">
           Trading fee: 0.1% • Max multiplier: 10x
           {needsDeposit && isConnected && !insufficientFunds && (
-            <span className="block mt-1 text-amber-500">
+            <span className="block mt-1 text-amber-500 font-sans">
               Requires permit signature + transaction
             </span>
           )}
