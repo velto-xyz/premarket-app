@@ -435,11 +435,7 @@ export default function AlphaLeague() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center pb-12 px-7">
-            <p className="text-muted-foreground text-md leading-relaxed">
-              Compete with other traders in our weekly league to earn exclusive rewards & yield boosts.
-            </p>
-
-            <div className="mt-8 flex items-center justify-center gap-2">
+            <div className="mb-6 flex items-center justify-center gap-2">
               <Badge variant="secondary" className="px-4 py-1.5 bg-primary/30 text-black border-none font-medium text-sm rounded-[8px]">
                 Weekly Rewards
               </Badge>
@@ -447,6 +443,10 @@ export default function AlphaLeague() {
                 Trader Rankings
               </Badge>
             </div>
+
+            <p className="text-muted-foreground text-md leading-relaxed">
+              Compete with other traders in our weekly league to earn exclusive rewards & yield boosts.
+            </p>
           </CardContent>
         </Card>
       </div>

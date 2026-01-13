@@ -532,9 +532,9 @@ export default function Markets() {
           </div>
         </div>
 
-        {/* === Table Section with Isolated Horizontal Scroll === */}
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="min-w-[1000px]">
+        {/* === Table Section === */}
+        <div className="pb-4">
+          <div className="">
             {/* === Table Headers === */}
             <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_100px] gap-6 px-6 pb-4 pt-5 mb-4 border-b border-border text-sm font-medium text-muted-foreground uppercase tracking-wider items-center sticky top-0 z-10 bg-background min-w-[1090px] whitespace-nowrap">
               <div

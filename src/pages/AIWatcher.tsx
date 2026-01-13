@@ -421,11 +421,7 @@ export default function AIWatcher() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center pb-12 px-7">
-            <p className="text-muted-foreground text-md leading-relaxed">
-              We're building an advanced AI engine to analyze market sentiment and deliver real-time trading signals.
-            </p>
-
-            <div className="mt-8 flex items-center justify-center gap-2">
+            <div className="mb-6 flex items-center justify-center gap-2">
               <Badge variant="secondary" className="px-4 py-1.5 bg-primary/30 text-black border-none font-medium text-sm rounded-[8px]">
                 Sentiment Analysis
               </Badge>
@@ -433,6 +429,10 @@ export default function AIWatcher() {
                 Live Signals
               </Badge>
             </div>
+
+            <p className="text-muted-foreground text-md leading-relaxed">
+              We're building an advanced AI engine to analyze market sentiment and deliver real-time trading signals.
+            </p>
           </CardContent>
         </Card>
       </div>
