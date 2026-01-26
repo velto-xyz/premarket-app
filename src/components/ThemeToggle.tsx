@@ -1,6 +1,6 @@
-import { Moon, Sun, Monitor } from "lucide-react";
+import { Sun01Icon, Moon01Icon, ComputerIcon } from "@/components/icons";
 import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
+import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 
 interface ThemeToggleProps {
@@ -33,11 +33,11 @@ export function ThemeToggle({ isCollapsed = false }: ThemeToggleProps) {
   const getIcon = () => {
     switch (theme) {
       case "light":
-        return <Sun className="h-4 w-4" />;
+        return <Sun01Icon className="h-6 w-6" />;
       case "dark":
-        return <Moon className="h-4 w-4" />;
+        return <Moon01Icon className="h-6 w-6" />;
       default:
-        return <Monitor className="h-4 w-4" />;
+        return <ComputerIcon className="h-6 w-6" />;
     }
   };
 
@@ -53,15 +53,13 @@ export function ThemeToggle({ isCollapsed = false }: ThemeToggleProps) {
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
+    <SidebarMenuButton
       onClick={cycleTheme}
-      className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+      className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-md"
       title={`Theme: ${getLabel()} (click to cycle)`}
     >
       {getIcon()}
-      {!isCollapsed && <span>{getLabel()}</span>}
-    </Button>
+      {!isCollapsed && <span className="text-base">{getLabel()}</span>}
+    </SidebarMenuButton>
   );
 }

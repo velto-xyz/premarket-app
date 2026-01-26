@@ -212,7 +212,7 @@ export default function AIWatcher() {
   const newsItems = extractNewsFromSentiment(sentimentData?.startups);
 
   return (
-    <AppLayout>
+    <AppLayout className="relative overflow-hidden">
       <div className="container mx-auto p-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -239,7 +239,7 @@ export default function AIWatcher() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 opacity-100 pointer-events-none select-none filter blur-[2px] transition-all duration-500">
           {/* Main Sentiment Grid */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="glass border-border">
@@ -410,6 +410,31 @@ export default function AIWatcher() {
             </Card>
           </div>
         </div>
+      </div>
+
+      {/* Coming Soon Overlay */}
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/30 backdrop-blur-sm">
+        <Card className="w-full max-w-md mx-4 shadow-none border-default bg-background/20 backdrop-blur-xl animate-in fade-in zoom-in duration-300">
+          <CardHeader className="text-center pb-4 pt-10">
+            <CardTitle className="text-3xl font-bold text-black dark:text-white">
+              Coming Soon
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center pb-12 px-7">
+            <div className="mb-6 flex items-center justify-center gap-2">
+              <Badge variant="secondary" className="px-4 py-1.5 bg-primary/30 text-black border-none font-medium text-sm rounded-[8px]">
+                Sentiment Analysis
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-1.5 bg-primary/30 text-black border-none font-medium text-sm rounded-[8px]">
+                Live Signals
+              </Badge>
+            </div>
+
+            <p className="text-muted-foreground text-md leading-relaxed">
+              We're building an advanced AI engine to analyze market sentiment and deliver real-time trading signals.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

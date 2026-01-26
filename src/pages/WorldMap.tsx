@@ -16,7 +16,7 @@ export default function WorldMap() {
   const navigate = useNavigate();
   const mapRef = useRef<MapRef>(null);
   const [selectedStartupId, setSelectedStartupId] = useState<string | null>(null);
-  
+
   // Fetch markets from storage layer (includes real price data)
   // Uses same query key as Markets page so useMarketDataStream updates work
   const { data: markets, isLoading } = useQuery({
@@ -48,8 +48,14 @@ export default function WorldMap() {
     unicorn_color: m.unicornColor,
     current_price: m.currentPrice,
     price_change_24h: m.priceChange24h,
+    logo_url: m.logoUrl,
     industries: industries?.find(ind => ind.id === m.industryId),
   }));
+
+  const getLogoUrl = (startup: any) => {
+    if (startup.logo_url) return startup.logo_url;
+    return startupLogos[startup.slug as keyof typeof startupLogos] || startupLogos["synapsehive-robotics"];
+  };
 
   if (isLoading) {
     return (
@@ -91,7 +97,7 @@ export default function WorldMap() {
               <span className="text-foreground">All</span> <span className="text-gradient">Startups</span>
             </h2>
           </div>
-          
+
           <Carousel
             opts={{
               align: "start",
@@ -102,7 +108,7 @@ export default function WorldMap() {
             <CarouselContent className="-ml-4">
               {startups?.map((startup) => (
                 <CarouselItem key={startup.id} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
-                  <Card 
+                  <Card
                     className={`glass border-border hover:border-primary transition-all duration-300 cursor-pointer hover:glow h-full ${selectedStartupId === startup.id ? 'border-primary ring-2 ring-primary/50' : ''}`}
                     onClick={() => {
                       setSelectedStartupId(startup.id);
@@ -114,8 +120,8 @@ export default function WorldMap() {
                       <div className="flex flex-col gap-4">
                         <div className="flex items-start gap-3">
                           <div className="w-14 h-14 rounded-xl bg-background flex items-center justify-center p-2 flex-shrink-0">
-                            <img 
-                              src={startupLogos[startup.slug]} 
+                            <img
+                              src={getLogoUrl(startup)}
                               alt={`${startup.name} logo`}
                               className="w-full h-full object-contain"
                             />
@@ -132,12 +138,12 @@ export default function WorldMap() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 text-sm text-muted-foreground border-t border-border pt-3">
                           <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="truncate">{startup.hq_location}</span>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 pt-2">
                           <div className="text-center">
                             <div className="text-xl font-bold text-foreground tabular-nums">

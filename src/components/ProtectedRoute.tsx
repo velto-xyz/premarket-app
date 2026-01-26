@@ -12,7 +12,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Dev mode bypass - only works when VITE_DEV_BYPASS_AUTH=true in .env.local
+  const devBypassAuth = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+
   useEffect(() => {
+    // Skip auth check in dev bypass mode
+    if (devBypassAuth) {
+      setLoading(false);
+      return;
+    }
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -30,7 +39,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [devBypassAuth]);
 
   if (loading) {
     return (
@@ -40,7 +49,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user || !session) {
+  // Skip auth redirect in dev bypass mode
+  if (!devBypassAuth && (!user || !session)) {
     return <Navigate to="/auth" replace />;
   }
 

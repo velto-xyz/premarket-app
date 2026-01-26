@@ -27,7 +27,7 @@ import type {
  * - Contracts: Current prices, open positions, trading
  */
 export class StorageLayer implements IStorageLayer {
-  private supabase: SupabaseSource
+  public supabase: SupabaseSource
   public contracts: ContractSource
 
   constructor(walletClient?: WalletClient) {
@@ -93,7 +93,12 @@ export class StorageLayer implements IStorageLayer {
 
     let contractState = null
     if (contractInfo?.perpMarketAddress) {
-      contractState = await this.contracts.getMarketState(contractInfo.perpMarketAddress)
+      try {
+        contractState = await this.contracts.getMarketState(contractInfo.perpMarketAddress)
+      } catch (error) {
+        console.error(`Failed to fetch market state for ${slug}:`, error)
+        // Fallback to default values inside contractState variable remains null
+      }
     }
 
     // Fetch 24h stats if we have an engine address
